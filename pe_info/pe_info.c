@@ -76,6 +76,8 @@ char *dup(char *str)
 
 void add_memory_region(uint32_t start, uint32_t end, char *name)
 {
+    if(start == end)
+        return;
     struct mem_region_t *region = malloc(sizeof(struct mem_region_t));
     region->start = start;
     region->end = end;

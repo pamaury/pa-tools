@@ -5,9 +5,12 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdarg.h>
+#include <stddef.h>
 #include <time.h>
 #include "rom.h"
 #include "pe.h"
+
+#define DO_UNCOMPRESS
 
 #if 1 /* ANSI colors */
 
@@ -393,21 +396,44 @@ void write_section_header(FILE *f, o32_rom *o32, uint32_t raw_data_ptr)
         snprintf(sec_hdr.Name, IMAGE_SIZEOF_SHORT_NAME, ".misc");
     sec_hdr.Misc.VirtualSize = o32->o32_vsize;
     sec_hdr.VirtualAddress = o32->o32_rva;
-    sec_hdr.SizeOfRawData = min(o32->o32_psize, o32->o32_vsize);
-    sec_hdr.PointerToRawData = raw_data_ptr;
+    sec_hdr.SizeOfRawData = min(o32->o32_psize, o32->o32_vsize); /* probably wrong, fixed later */
+    sec_hdr.PointerToRawData = raw_data_ptr; /* probably wrong, fixed later */
     sec_hdr.PointerToRelocations = 0;
     sec_hdr.PointerToLinenumbers = 0;
     sec_hdr.NumberOfRelocations = 0;
     sec_hdr.NumberOfLinenumbers = 0;
+    #ifdef DO_UNCOMPRESS
+    sec_hdr.Characteristics = o32->o32_flags & ~IMAGE_SCN_COMPRESSED;
+    #else
     sec_hdr.Characteristics = o32->o32_flags;
+    #endif
     fwrite(&sec_hdr, sizeof(sec_hdr), 1, f);
 }
 
-uint32_t compute_section_raw_data_pos(o32_rom *o32, uint32_t idx, uint32_t raw_data_start)
+void *cedecompress(void *in_buf, size_t in_size, size_t *out_size)
 {
-    for(uint32_t i = 0; i < idx; i++, o32++)
-        raw_data_start = align(raw_data_start + min(o32->o32_psize, o32->o32_vsize), 0x1000);
-    return raw_data_start;
+    char *tmpfilename = tmpnam(NULL);
+    FILE *tmpfile = fopen(tmpfilename, "wb");
+    if(tmpfile == NULL)
+    {
+        printf("%s[error creating temporary file]\n", GREY);
+        return NULL;
+    }
+    fwrite(in_buf, in_size, 1, tmpfile);
+    fclose(tmpfile);
+    snprintf(g_name_buffer, sizeof(g_name_buffer), "./cedecompr.sh %s %s > /dev/null", tmpfilename, tmpfilename);
+    //printf("%s{cmd: %s}\n", GREY, g_name_buffer);
+    if(system(g_name_buffer) != 0)
+    {
+        remove(tmpfilename);
+        printf("%s[error decompressing section]\n", GREY);
+        return NULL;
+    }
+    void *tmpbuf = load_file(tmpfilename, out_size);
+    remove(tmpfilename);
+    if(tmpbuf == NULL)
+        printf("%s[error loading temporary file]\n", GREY);
+    return tmpbuf;
 }
 
 void write_section_data(FILE *f, o32_rom *o32, uint32_t virtual_base, uint32_t file_off)
@@ -426,9 +452,38 @@ void write_section_data(FILE *f, o32_rom *o32, uint32_t virtual_base, uint32_t f
         o32->o32_rva, BLUE, YELLOW, o32->o32_dataptr, BLUE, YELLOW, o32->o32_realaddr);
     printf("          %ssize: phys=%s%#x %svirt=%s%#x\n", BLUE, YELLOW, o32->o32_psize,
         BLUE, YELLOW, o32->o32_vsize);
-    
+
+    #ifdef DO_UNCOMPRESS
+    if(o32->o32_flags & IMAGE_SCN_COMPRESSED)
+    {
+        size_t sz;
+        void *tmpbuf = cedecompress(
+            (void *)(g_buf + file_off + o32->o32_dataptr - virtual_base),
+            min(o32->o32_psize, o32->o32_vsize),
+            &sz);
+        if(tmpbuf)
+        {
+            fwrite(tmpbuf, sz, 1, f);
+            free(tmpbuf);
+        }
+    }
+    else
+    #endif
     fwrite((void *)(g_buf + file_off + o32->o32_dataptr - virtual_base),
         min(o32->o32_psize, o32->o32_vsize), 1, f);
+}
+
+void fixup_section(FILE *f, size_t section_idx, uint32_t section_headers_off,
+    uint32_t raw_data_ptr, uint32_t raw_data_size)
+{
+    uint32_t fixup_off = section_headers_off +
+        section_idx * sizeof(IMAGE_SECTION_HEADER);
+    uint32_t pos = ftell(f); /* cast to 32bit ! */
+    fseek(f, fixup_off + offsetof(IMAGE_SECTION_HEADER, PointerToRawData), SEEK_SET);
+    fwrite(&raw_data_ptr, sizeof(raw_data_ptr), 1, f);
+    fseek(f, fixup_off + offsetof(IMAGE_SECTION_HEADER, SizeOfRawData), SEEK_SET);
+    fwrite(&raw_data_size, sizeof(raw_data_size), 1, f);
+    fseek(f, pos, SEEK_SET);
 }
 
 uint32_t __phys_to_virt(void *ptr, struct binfs_header *binfs_hdr)
@@ -610,13 +665,17 @@ void dump_rom(uint8_t *buf, uint32_t file_off, uint32_t virtual_base, uint32_t p
                 (o32[i].o32_flags & IMAGE_SCN_COMPRESSED) ? " compressed" : "");
 
         write_nt_header(f, romhdr, &toc_modules[i], e32, o32);
-        uint32_t raw_data_start = align(ftell(f) + e32->e32_objcnt * sizeof(IMAGE_SECTION_HEADER), 0x200);
+        uint32_t section_headers_off = ftell(f);
         for(uint32_t i = 0; i < e32->e32_objcnt; i++)
-            write_section_header(f, &o32[i], compute_section_raw_data_pos(o32, i, raw_data_start));
+            /* pointer to raw data offset will be fixed later on */
+            write_section_header(f, &o32[i], 0);
         for(uint32_t i = 0; i < e32->e32_objcnt; i++)
         {
-            fseek(f, compute_section_raw_data_pos(o32, i, raw_data_start), SEEK_SET);
+            fseek(f, align(ftell(f), 0x1000), SEEK_SET);
+            size_t pos = ftell(f);
             write_section_data(f, &o32[i], virtual_base, file_off);
+            size_t pos_end = ftell(f);
+            fixup_section(f, i, section_headers_off, pos, pos_end - pos);
         }
         fclose(f);
     }
@@ -638,6 +697,29 @@ void dump_rom(uint8_t *buf, uint32_t file_off, uint32_t virtual_base, uint32_t p
             "%sROM Header: %sfile entry: %s%s", RED, YELLOW, BLUE, ptr);
         add_memory_region_by_size(virt_to_off(toc_files[i].ulLoadOffset), toc_files[i].nCompFileSize,
             "%s%s: %scontent", RED, ptr, YELLOW);
+
+        // recreate original file
+        char *filename = malloc(strlen(ptr) + strlen(out_prefix) + 1);
+        sprintf(filename, "%s%s", out_prefix, ptr);
+        FILE *f = fopen(filename, "wb");
+        free(filename);
+        if(f == NULL)
+            continue;
+        if(toc_files[i].nRealFileSize != toc_files[i].nCompFileSize)
+        {
+            size_t sz;
+            void *tmp_buf = cedecompress(virt_to_phys(toc_files[i].ulLoadOffset),
+                toc_files[i].nRealFileSize, &sz);
+            if(tmp_buf)
+            {
+                fwrite(tmp_buf, sz, 1, f);
+                free(tmp_buf);
+            }
+        }
+        else
+            fwrite(virt_to_phys(toc_files[i].ulLoadOffset),
+                toc_files[i].nRealFileSize, 1, f);
+        fclose(f);
     }
 
     COPYentry *toc_copies = (COPYentry *)virt_to_phys(romhdr->ulCopyOffset);
