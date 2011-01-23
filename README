@@ -1,2 +1,7 @@
 This repository contains some random tools.
 Here is a quick summary of the tools:
+o lsusb_tgk/
+  A simple GTK wrapper around lsusb, used to display a nice structure
+o serial_reader/
+  A simple tool to read/write from/to a usb serial device.
+  Useful for use with rockbox usbser driver
