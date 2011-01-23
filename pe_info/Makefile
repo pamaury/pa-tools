@@ -1,8 +1,8 @@
 CC=gcc
 CXX=g++
-CFLAGS=-W -Wall -O2 `pkg-config --cflags libusb-1.0` -std=c99 -g
+CFLAGS=-W -Wall -O2 -std=c99 -g
 CXXFLAGS=-W -Wall -O2 -g
-LDFLAGS=`pkg-config --libs libusb-1.0`
+LDFLAGS=
 SRC=$(wildcard *.c)
 SRCXX=$(wildcard *.cpp)
 OBJ=$(SRC:.c=) $(SRCXX:.cpp=)
