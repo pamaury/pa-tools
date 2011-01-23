@@ -8,3 +8,6 @@ o serial_reader/
 o usb_test/
   A simple tool to test rockbox usb stack.
   It works with the usbtest driver of one of my branches.
+o pe_info/
+  A simple and nice tool to dump a PE file. It has color, supports ordinal
+  import resolution and build a memory map.
