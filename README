@@ -11,3 +11,5 @@ o usb_test/
 o pe_info/
   A simple and nice tool to dump a PE file. It has color, supports ordinal
   import resolution and build a memory map.
+o mio_C501e/
+  Some tools related to the Mio C510e device, running WinCE. Many ROM related.
