@@ -10,6 +10,8 @@
 #include <dirent.h>
 #include "pe.h"
 
+#define ADD_PHYS_MAP
+
 #if 1 /* ANSI colors */
 
 #	define color(a) printf("%s",a)
@@ -495,12 +497,14 @@ void pe_info()
     #define rva_to_rphys(rva) __rva_to_rphys(rva, nt_hdr)
     
 
+    #ifdef ADD_PHYS_MAP
     add_memory_region_by_size(0, g_sz, "%sphysical image address space", BLUE);
     add_memory_region_by_size(phys_to_rphys(dos_hdr), dos_hdr->e_lfanew, "%sDOS Header and code", BLUE);
     add_memory_region_by_size(phys_to_rphys(nt_hdr), sizeof(IMAGE_NT_HEADERS32), "%sNT Headers", BLUE);
 
     add_memory_region_by_size(opt_hdr->ImageBase, opt_hdr->SizeOfImage,
         "%svirtual image address space", RED);
+    #endif
     add_memory_region_by_size(phys_to_va(dos_hdr), dos_hdr->e_lfanew, "%sDOS Header and code", RED);
     add_memory_region_by_size(phys_to_va(nt_hdr), sizeof(IMAGE_NT_HEADERS32), "%sNT Headers", RED);
 
@@ -526,12 +530,14 @@ void pe_info()
 
         add_memory_region_by_size(phys_to_va(&sections[i]), sizeof(IMAGE_SECTION_HEADER),
             "%sSection %s%s: %sheader", RED, YELLOW, sections[i].Name, GREEN);
-        add_memory_region_by_size(phys_to_rphys(&sections[i]), sizeof(IMAGE_SECTION_HEADER),
-            "%sSection %s%s: %sheader", BLUE, YELLOW, sections[i].Name, GREEN);
         add_memory_region_by_size(rva_to_va(sections[i].VirtualAddress), sections[i].Misc.VirtualSize,
             "%sSection %s%s: %scontent", RED, YELLOW, sections[i].Name, GREEN);
+        #ifdef ADD_PHYS_MAP
+        add_memory_region_by_size(phys_to_rphys(&sections[i]), sizeof(IMAGE_SECTION_HEADER),
+            "%sSection %s%s: %sheader", BLUE, YELLOW, sections[i].Name, GREEN);
         add_memory_region_by_size(sections[i].PointerToRawData, sections[i].SizeOfRawData,
             "%sSection %s%s: %scontent", BLUE, YELLOW, sections[i].Name, GREEN);
+        #endif
     }
 
     for(size_t i = 0; i < IMAGE_NUMBEROF_DIRECTORY_ENTRIES; i++)
@@ -541,10 +547,10 @@ void pe_info()
             continue;
         add_memory_region_by_size(rva_to_va(dir->VirtualAddress), dir->Size, "%sData directory: %s%s",
             RED, YELLOW, get_data_directory_string(i));
-        /*
+        #ifdef ADD_PHYS_MAP
         add_memory_region_by_size(rva_to_rphys(dir->VirtualAddress), dir->Size, "%sData directory: %s%s",
             BLUE, YELLOW, get_data_directory_string(i));
-        */
+        #endif
     }
 
     // import directory
@@ -564,8 +570,7 @@ void pe_info()
             if(imports[i].u.OriginalFirstThunk != 0)
                 function_name_list = (IMAGE_THUNK_DATA32 *)(g_buf + rva_to_rphys(imports[i].u.OriginalFirstThunk));
             uint32_t j = 0;
-            uint32_t max_nr_functions = opt_hdr->DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size / sizeof(uint32_t);
-            while(function_name_list->u1.Ordinal && j < max_nr_functions)
+            while(function_name_list->u1.Ordinal)
             {
                 if(IMAGE_SNAP_BY_ORDINAL32(function_name_list->u1.Ordinal))
                 {
@@ -595,7 +600,6 @@ void pe_info()
     {
         uint32_t offset = rva_to_rphys(opt_hdr->DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
         IMAGE_EXPORT_DIRECTORY *exports = (IMAGE_EXPORT_DIRECTORY *)(g_buf + offset);
-        uint32_t max_nr_exports = opt_hdr->DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].Size / sizeof(uint32_t) / 2;
 
         char *dll_name = (char *)(g_buf + rva_to_rphys(exports->Name));
         printf("%sExport: %s\n", GREEN, dll_name);
@@ -609,7 +613,7 @@ void pe_info()
         uint32_t *name_ptr = (uint32_t *)(g_buf + rva_to_rphys(exports->AddressOfNames));
         uint16_t *ord_ptr = (uint16_t *)(g_buf + rva_to_rphys(exports->AddressOfNameOrdinals));
 
-        for(size_t i = 0; i < exports->NumberOfFunctions && i < max_nr_exports; i++)
+        for(size_t i = 0; i < exports->NumberOfFunctions; i++)
         {
             char *name = "";
             if(name_ptr[i] != 0 && rva_to_rphys(name_ptr[i]))
