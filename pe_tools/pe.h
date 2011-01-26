@@ -192,23 +192,31 @@ typedef struct _IMAGE_SECTION_HEADER {
 } IMAGE_SECTION_HEADER,*PIMAGE_SECTION_HEADER;
 
 typedef struct _IMAGE_EXPORT_DIRECTORY {
-	uint32_t Characteristics;
-	uint32_t TimeDateStamp;
-	uint16_t MajorVersion;
-	uint16_t MinorVersion;
-	uint32_t Name;
-	uint32_t Base;
-	uint32_t NumberOfFunctions;
-	uint32_t NumberOfNames;
-	uint32_t AddressOfFunctions;
-	uint32_t AddressOfNames;
-	uint32_t AddressOfNameOrdinals;
+    uint32_t Characteristics;
+    uint32_t TimeDateStamp;
+    uint16_t MajorVersion;
+    uint16_t MinorVersion;
+    uint32_t Name;
+    uint32_t Base;
+    uint32_t NumberOfFunctions;
+    uint32_t NumberOfNames;
+    uint32_t AddressOfFunctions;
+    uint32_t AddressOfNames;
+    uint32_t AddressOfNameOrdinals;
 } IMAGE_EXPORT_DIRECTORY,*PIMAGE_EXPORT_DIRECTORY;
 
 typedef struct _IMAGE_IMPORT_BY_NAME {
-	uint16_t Hint;
-	char Name[1];
+    uint16_t Hint;
+    char Name[1];
 } IMAGE_IMPORT_BY_NAME,*PIMAGE_IMPORT_BY_NAME;
+
+typedef struct _IMAGE_RUNTIME_FUNCTION_ENTRY {
+    uint32_t BeginAddress;
+    uint32_t EndAddress;
+    uint32_t ExceptionHandler;
+    uint32_t HandlerData;
+    uint32_t PrologEndAddress;
+} IMAGE_RUNTIME_FUNCTION_ENTRY,*PIMAGE_RUNTIME_FUNCTION_ENTRY;
 
 typedef struct _IMAGE_THUNK_DATA32 {
     union {
@@ -225,12 +233,12 @@ typedef IMAGE_THUNK_DATA32 *PIMAGE_THUNK_DATA32;
 #define IMAGE_SNAP_BY_ORDINAL32(Ordinal) (((Ordinal) & IMAGE_ORDINAL_FLAG32)!=0)
 
 typedef struct _IMAGE_IMPORT_DESCRIPTOR {
-	union {
-		uint32_t Characteristics;
-		uint32_t OriginalFirstThunk;
-	}u;
-	uint32_t TimeDateStamp;
-	uint32_t ForwarderChain;
-	uint32_t Name;
-	uint32_t FirstThunk;
+    union {
+	uint32_t Characteristics;
+	uint32_t OriginalFirstThunk;
+    }u;
+    uint32_t TimeDateStamp;
+    uint32_t ForwarderChain;
+    uint32_t Name;
+    uint32_t FirstThunk;
 } IMAGE_IMPORT_DESCRIPTOR,*PIMAGE_IMPORT_DESCRIPTOR;

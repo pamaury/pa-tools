@@ -145,13 +145,18 @@ struct mem_region_tree_t *build_tree(struct mem_region_tree_t *regions,
     {
         //printf("%scur reg: %s\n", RED, regions->name);
         /* nested ? */
-        if(regions->next && contains(regions,  regions->next))
+        if(regions->next && contains(regions, regions->next))
         {
             //printf("%s!!nested!!\n", GREY);
             /* advance in the chain to keep all nested ones */
             regions->child = regions->next;
-            while(regions->next && regions->next->next)
+            while(regions->next)
             {
+                if(regions->next->next == NULL)
+                {
+                    regions->next = NULL;
+                    break;
+                }
                 if(!contains(regions, regions->next->next))
                 {
                     /* cut chain */
@@ -164,8 +169,6 @@ struct mem_region_tree_t *build_tree(struct mem_region_tree_t *regions,
                 else
                     regions->next = regions->next->next;
             }
-            if(regions->next->next == NULL)
-                regions->next = NULL;
             /* build recursively */
             regions->child = build_tree(regions->child, regions->start, regions->end);
         }
@@ -565,7 +568,13 @@ void pe_info()
         for(size_t i = 0; i < max_nr_imports && imports[i].Name; i++)
         {
             char *dll_name = (char *)(g_buf + rva_to_rphys(imports[i].Name));
+            #ifdef ADD_PHYS_MAP
+            add_memory_region_by_size(rva_to_rphys(imports[i].Name),
+                strlen(dll_name) + 1, "%sImport dll name: %s%s", BLUE, YELLOW, dll_name);
+            #endif
             printf("  %sDLL %u: %s%s\n", GREEN, (unsigned)i, YELLOW, dll_name);
+            printf("    %sIAT (RVA): %s0x%x\n", RED, YELLOW, imports[i].FirstThunk);
+            printf("    %sINT (RVA): %s0x%x\n", RED, YELLOW, imports[i].u.OriginalFirstThunk);
             IMAGE_THUNK_DATA32 *function_name_list = (IMAGE_THUNK_DATA32 *)(g_buf + rva_to_rphys(imports[i].FirstThunk));
             if(imports[i].u.OriginalFirstThunk != 0)
                 function_name_list = (IMAGE_THUNK_DATA32 *)(g_buf + rva_to_rphys(imports[i].u.OriginalFirstThunk));
@@ -592,6 +601,14 @@ void pe_info()
                 function_name_list++;
                 j++;
             }
+            #ifdef ADD_PHYS_MAP
+            add_memory_region_by_size(rva_to_rphys(imports[i].u.OriginalFirstThunk),
+                j * sizeof(IMAGE_THUNK_DATA32), "%sImport table: %s%s: %sINT", BLUE, YELLOW,
+                dll_name, RED);
+            add_memory_region_by_size(rva_to_rphys(imports[i].FirstThunk),
+                j * sizeof(IMAGE_THUNK_DATA32), "%sImport table: %s%s: %sIAT", BLUE, YELLOW,
+                dll_name, RED);
+            #endif
         }
     }
 
@@ -603,20 +620,30 @@ void pe_info()
 
         char *dll_name = (char *)(g_buf + rva_to_rphys(exports->Name));
         printf("%sExport: %s\n", GREEN, dll_name);
-        if(exports->NumberOfFunctions != exports->NumberOfNames)
-        {
-            printf("  %s!! %sNumberOfFunctions != NumberOfNames  %sDon't know what will happen!!\n",
-                RED, YELLOW, RED);
-        }
-
+        #ifdef ADD_PHYS_MAP
+        add_memory_region_by_size(rva_to_rphys(exports->Name), strlen(dll_name) + 1,
+            "%sExport dll name: %s%s", BLUE, YELLOW, dll_name);
+        #endif
         uint32_t *func_ptr = (uint32_t *)(g_buf + rva_to_rphys(exports->AddressOfFunctions));
         uint32_t *name_ptr = (uint32_t *)(g_buf + rva_to_rphys(exports->AddressOfNames));
         uint16_t *ord_ptr = (uint16_t *)(g_buf + rva_to_rphys(exports->AddressOfNameOrdinals));
+        #ifdef ADD_PHYS_MAP
+        add_memory_region_by_size(rva_to_rphys(exports->AddressOfFunctions),
+            exports->NumberOfFunctions * sizeof(uint32_t),
+            "%sExport table: %sfunction RVAs", BLUE, YELLOW);
+        add_memory_region_by_size(rva_to_rphys(exports->AddressOfNames),
+            exports->NumberOfNames * sizeof(uint32_t),
+            "%sExport table: %sfunction names", BLUE, YELLOW);
+        add_memory_region_by_size(rva_to_rphys(exports->AddressOfNameOrdinals),
+            exports->NumberOfNames * sizeof(uint16_t),
+            "%sExport table: %sfunction ordinals", BLUE, YELLOW);
+        #endif
 
-        for(size_t i = 0; i < exports->NumberOfFunctions; i++)
+        //for(size_t i = 0; i < exports->NumberOfFunctions; i++)
+        for(size_t i = 0; i < exports->NumberOfNames; i++)
         {
             char *name = "";
-            if(name_ptr[i] != 0 && rva_to_rphys(name_ptr[i]))
+            if(i < exports->NumberOfNames && name_ptr[i] != 0 && rva_to_rphys(name_ptr[i]))
                 name = (char *)(g_buf + rva_to_rphys(name_ptr[i]));
             printf("    %s[%s%u%s]: rva=%s%#x %sord=%s%u %sname=%s%s\n", BLUE, YELLOW, (unsigned)i, BLUE, YELLOW,
                         func_ptr[i], BLUE, YELLOW, ord_ptr[i] + exports->Base, BLUE, RED, name);

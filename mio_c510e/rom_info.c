@@ -11,7 +11,7 @@
 #include "pe.h"
 
 #define DO_UNCOMPRESS
-#define ALLOW_NEGATIVE_PE_RVAs
+#define DO_INCLUDE_SPECIAL_SECTION
 /* Various PE parameters */
 #define PE_SECTION_ALIGNMENT    0x1000
 #define PE_FILE_ALIGNMENT       0x200
@@ -162,8 +162,13 @@ struct mem_region_tree_t *build_tree(struct mem_region_tree_t *regions,
             //printf("%s!!nested!!\n", GREY);
             /* advance in the chain to keep all nested ones */
             regions->child = regions->next;
-            while(regions->next && regions->next->next)
+            while(regions->next)
             {
+                if(regions->next->next == NULL)
+                {
+                    regions->next = NULL;
+                    break;
+                }
                 if(!contains(regions, regions->next->next))
                 {
                     /* cut chain */
@@ -176,8 +181,6 @@ struct mem_region_tree_t *build_tree(struct mem_region_tree_t *regions,
                 else
                     regions->next = regions->next->next;
             }
-            if(regions->next->next == NULL)
-                regions->next = NULL;
             /* build recursively */
             regions->child = build_tree(regions->child, regions->start, regions->end);
         }
@@ -339,6 +342,9 @@ void write_nt_header(FILE *f, ROMHDR *romhdr, TOCentry *tocent, e32_rom *e32, o3
     nt_hdr.Signature = IMAGE_NT_SIGNATURE;
     nt_hdr.FileHeader.Machine = romhdr->usCPUType;
     nt_hdr.FileHeader.NumberOfSections = e32->e32_objcnt;
+    #ifdef DO_INCLUDE_SPECIAL_SECTION
+    nt_hdr.FileHeader.NumberOfSections++;
+    #endif
     nt_hdr.FileHeader.TimeDateStamp = parse_filetime(&tocent->ftTime);
     nt_hdr.FileHeader.PointerToSymbolTable = 0;
     nt_hdr.FileHeader.NumberOfSymbols = 0;
@@ -401,8 +407,9 @@ void write_nt_header(FILE *f, ROMHDR *romhdr, TOCentry *tocent, e32_rom *e32, o3
     fwrite(&nt_hdr, sizeof(nt_hdr), 1, f);
 }
 
-void write_section_header(FILE *f, o32_rom *o32, uint32_t raw_data_ptr)
+void write_section_header(FILE *f, e32_rom *e32, o32_rom *o32, uint32_t raw_data_ptr)
 {
+    (void) e32;
     IMAGE_SECTION_HEADER sec_hdr;
     memset(&sec_hdr, 0, sizeof(IMAGE_SECTION_HEADER));
 
@@ -415,11 +422,7 @@ void write_section_header(FILE *f, o32_rom *o32, uint32_t raw_data_ptr)
     else
         snprintf(sec_hdr.Name, IMAGE_SIZEOF_SHORT_NAME, ".misc");
     sec_hdr.Misc.VirtualSize = o32->o32_vsize;
-    #ifdef ALLOW_NEGATIVE_PE_RVAs
-    sec_hdr.VirtualAddress = o32->o32_realaddr;
-    #else
     sec_hdr.VirtualAddress = o32->o32_rva;
-    #endif
     sec_hdr.SizeOfRawData = min(o32->o32_psize, o32->o32_vsize); /* probably wrong, fixed later */
     sec_hdr.PointerToRawData = raw_data_ptr; /* probably wrong, fixed later */
     sec_hdr.PointerToRelocations = 0;
@@ -431,6 +434,24 @@ void write_section_header(FILE *f, o32_rom *o32, uint32_t raw_data_ptr)
     #else
     sec_hdr.Characteristics = o32->o32_flags;
     #endif
+    fwrite(&sec_hdr, sizeof(sec_hdr), 1, f);
+}
+
+void write_special_section_header(FILE *f, e32_rom *e32, o32_rom *o32)
+{
+    (void) o32;
+    IMAGE_SECTION_HEADER sec_hdr;
+    memset(&sec_hdr, 0, sizeof(IMAGE_SECTION_HEADER));
+    snprintf(sec_hdr.Name, IMAGE_SIZEOF_SHORT_NAME, ".sec2va");
+    sec_hdr.Misc.VirtualSize = e32->e32_objcnt * sizeof(uint32_t);
+    sec_hdr.VirtualAddress = 0;
+    sec_hdr.SizeOfRawData = sec_hdr.Misc.VirtualSize;
+    sec_hdr.PointerToRawData = 0; /* fixed later */
+    sec_hdr.PointerToRelocations = 0;
+    sec_hdr.PointerToLinenumbers = 0;
+    sec_hdr.NumberOfRelocations = 0;
+    sec_hdr.NumberOfLinenumbers = 0;
+    sec_hdr.Characteristics = IMAGE_SCN_LNK_INFO; /* this is not a valid section */
     fwrite(&sec_hdr, sizeof(sec_hdr), 1, f);
 }
 
@@ -497,6 +518,12 @@ void write_section_data(FILE *f, o32_rom *o32, uint32_t virtual_base, uint32_t f
         min(o32->o32_psize, o32->o32_vsize), 1, f);
 }
 
+void write_special_section_data(FILE *f, e32_rom *e32, o32_rom *o32)
+{
+    for(size_t i = 0; i < e32->e32_objcnt; i++)
+        fwrite(&o32[i].o32_realaddr, sizeof(uint32_t), 1, f);
+}
+
 void fixup_section(FILE *f, size_t section_idx, uint32_t section_headers_off,
     uint32_t raw_data_ptr, uint32_t raw_data_size)
 {
@@ -530,6 +557,7 @@ void file_print(struct mem_region_tree_t *reg, void *data, size_t depth)
 
 void dump_rom(uint8_t *buf, uint32_t file_off, uint32_t virtual_base, uint32_t phys_size)
 {
+    (void) phys_size;
     #define virt_to_phys(virt) ((uint32_t)(virt) - virtual_base + buf)
     #define phys_to_virt(ptr) ((uint8_t *)(ptr) - buf + virtual_base)
     #define phys_to_off(ptr) ((uint8_t *)(ptr) - buf + file_off)
@@ -695,7 +723,10 @@ void dump_rom(uint8_t *buf, uint32_t file_off, uint32_t virtual_base, uint32_t p
         uint32_t section_headers_off = ftell(f);
         for(uint32_t i = 0; i < e32->e32_objcnt; i++)
             /* pointer to raw data offset will be fixed later on */
-            write_section_header(f, &o32[i], 0);
+            write_section_header(f, e32, &o32[i], 0);
+        #ifdef DO_INCLUDE_SPECIAL_SECTION
+        write_special_section_header(f, e32, o32);
+        #endif
         for(uint32_t i = 0; i < e32->e32_objcnt; i++)
         {
             fseek(f, align(ftell(f), PE_SECTION_ALIGNMENT), SEEK_SET);
@@ -704,6 +735,13 @@ void dump_rom(uint8_t *buf, uint32_t file_off, uint32_t virtual_base, uint32_t p
             size_t pos_end = ftell(f);
             fixup_section(f, i, section_headers_off, pos, pos_end - pos);
         }
+        #ifdef DO_INCLUDE_SPECIAL_SECTION
+        fseek(f, align(ftell(f), PE_SECTION_ALIGNMENT), SEEK_SET);
+        size_t pos = ftell(f);
+        write_special_section_data(f, e32, o32);
+        size_t pos_end = ftell(f);
+        fixup_section(f, e32->e32_objcnt, section_headers_off, pos, pos_end - pos);
+        #endif
         fclose(f);
     }
     FILESentry *toc_files = (FILESentry *)&toc_modules[romhdr->nummods];
