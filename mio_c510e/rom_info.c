@@ -11,6 +11,30 @@
 #include "pe.h"
 
 #define DO_UNCOMPRESS
+#define ALLOW_NEGATIVE_PE_RVAs
+/* Various PE parameters */
+#define PE_SECTION_ALIGNMENT    0x1000
+#define PE_FILE_ALIGNMENT       0x200
+#define PE_STACK_COMMIT         0x1000
+#define PE_HEAP_RESERVE         0x1000000
+#define PE_HEAP_COMMIT          0x1000
+
+#define BINFS_HDR_OFFSET    0x210
+#define BINFS_ROM_OFFSET    0x248
+
+struct binfs_header
+{
+    uint32_t xip_kernel_start;
+    uint32_t xip_kernel_len;
+    uint32_t nk_entry;
+    uint32_t ignore[5];
+    uint32_t xip_kernel_start2;
+    uint32_t xip_kernel_len2;
+    uint32_t chain_start;
+    uint32_t chain_len;
+    uint32_t xip_start;
+    uint32_t xip_len;
+};
 
 #if 1 /* ANSI colors */
 
@@ -27,6 +51,9 @@ char BLUE[] 	= { 0x1b, 0x5b, 0x31, 0x3b, '3', '4', 0x6d, '\0' };
 	/* disable colors */
 #	define color(a)
 #endif
+
+/* #region mem_region */
+#if 1
 
 struct mem_region_t
 {
@@ -212,22 +239,8 @@ void print_memory_tree(struct mem_region_tree_t *tree, tree_printer_t printer, v
     print_memory_tree2(tree, printer, data, 0);
 }
 
-#define BINFS_HDR_OFFSET    0x210
-#define BINFS_ROM_OFFSET    0x248
-
-struct binfs_header
-{
-    uint32_t xip_kernel_start;
-    uint32_t xip_kernel_len;
-    uint32_t nk_entry;
-    uint32_t ignore[5];
-    uint32_t xip_kernel_start2;
-    uint32_t xip_kernel_len2;
-    uint32_t chain_start;
-    uint32_t chain_len;
-    uint32_t xip_start;
-    uint32_t xip_len;
-};
+/* #endregion */
+#endif
 
 void *load_file(char *name, size_t *size)
 {
@@ -262,6 +275,9 @@ time_t parse_filetime(FILETIME *ft)
     uint64_t t = ft->dwLowDateTime | ((uint64_t)ft->dwHighDateTime << 32);
     return (t / 10000000) - 11644473600;
 }
+
+/* #region pe_generation */
+#if 1
 
 void write_mz_header(FILE *f)
 {
@@ -313,6 +329,7 @@ uint32_t align(uint32_t addr, uint32_t alg)
 }
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
+#define max(a, b) ((a) > (b) ? (a) : (b))
 
 void write_nt_header(FILE *f, ROMHDR *romhdr, TOCentry *tocent, e32_rom *e32, o32_rom *o32)
 {
@@ -337,8 +354,8 @@ void write_nt_header(FILE *f, ROMHDR *romhdr, TOCentry *tocent, e32_rom *e32, o3
     nt_hdr.OptionalHeader.BaseOfCode = find_first_segment(e32, o32, IMAGE_SCN_CNT_CODE);
     nt_hdr.OptionalHeader.BaseOfData = find_first_segment(e32, o32, IMAGE_SCN_CNT_INITIALIZED_DATA);
     nt_hdr.OptionalHeader.ImageBase = e32->e32_vbase;
-    nt_hdr.OptionalHeader.SectionAlignment = 0x1000;
-    nt_hdr.OptionalHeader.FileAlignment = 0x200;
+    nt_hdr.OptionalHeader.SectionAlignment = PE_SECTION_ALIGNMENT;
+    nt_hdr.OptionalHeader.FileAlignment = PE_FILE_ALIGNMENT;
     nt_hdr.OptionalHeader.MajorOperatingSystemVersion = 4;
     nt_hdr.OptionalHeader.MinorOperatingSystemVersion = 0;
     nt_hdr.OptionalHeader.MajorImageVersion = 0;
@@ -349,20 +366,23 @@ void write_nt_header(FILE *f, ROMHDR *romhdr, TOCentry *tocent, e32_rom *e32, o3
     nt_hdr.OptionalHeader.SizeOfImage = e32->e32_vsize;
     nt_hdr.OptionalHeader.SizeOfHeaders =
         align(sizeof(IMAGE_DOS_HEADER) + sizeof(IMAGE_NT_HEADERS32) +
-                e32->e32_objcnt * sizeof(IMAGE_SECTION_HEADER), 0x200);
+                e32->e32_objcnt * sizeof(IMAGE_SECTION_HEADER), PE_FILE_ALIGNMENT);
     nt_hdr.OptionalHeader.CheckSum = 0; // never used
     nt_hdr.OptionalHeader.Subsystem = e32->e32_subsys;
     nt_hdr.OptionalHeader.DllCharacteristics = 0;
     nt_hdr.OptionalHeader.SizeOfStackReserve = e32->e32_stackmax;
-    nt_hdr.OptionalHeader.SizeOfStackCommit = 0x1000; // random value
-    nt_hdr.OptionalHeader.SizeOfHeapReserve = 0x1000000; // random value
-    nt_hdr.OptionalHeader.SizeOfHeapCommit = 0x1000; // random value
+    nt_hdr.OptionalHeader.SizeOfStackCommit = PE_STACK_COMMIT;
+    nt_hdr.OptionalHeader.SizeOfHeapReserve = PE_HEAP_RESERVE;
+    nt_hdr.OptionalHeader.SizeOfHeapCommit = PE_HEAP_COMMIT;
     nt_hdr.OptionalHeader.LoaderFlags = 0;
     nt_hdr.OptionalHeader.NumberOfRvaAndSizes = IMAGE_NUMBEROF_DIRECTORY_ENTRIES;
 
+    #define SetDirectoryEntry(dir, rva, size) \
+        dir.VirtualAddress = rva; \
+        dir.Size = size
     #define CopyDirectoryEntry(entry) \
-        memcpy(&nt_hdr.OptionalHeader.DataDirectory[entry], \
-                &e32->e32_unit[entry], sizeof(IMAGE_DATA_DIRECTORY))
+        SetDirectoryEntry(nt_hdr.OptionalHeader.DataDirectory[entry], \
+            e32->e32_unit[entry].rva, e32->e32_unit[entry].size)
     
     CopyDirectoryEntry(IMAGE_DIRECTORY_ENTRY_EXPORT);
     CopyDirectoryEntry(IMAGE_DIRECTORY_ENTRY_IMPORT);
@@ -375,8 +395,8 @@ void write_nt_header(FILE *f, ROMHDR *romhdr, TOCentry *tocent, e32_rom *e32, o3
     CopyDirectoryEntry(IMAGE_DIRECTORY_ENTRY_GLOBALPTR);
     /* others don't apply... */
     /* ...except .NET */
-    nt_hdr.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR].VirtualAddress = e32->e32_sect14rva;
-    nt_hdr.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR].Size = e32->e32_sect14size;
+    SetDirectoryEntry(nt_hdr.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR],
+        e32->e32_sect14rva, e32->e32_sect14size);
 
     fwrite(&nt_hdr, sizeof(nt_hdr), 1, f);
 }
@@ -395,7 +415,11 @@ void write_section_header(FILE *f, o32_rom *o32, uint32_t raw_data_ptr)
     else
         snprintf(sec_hdr.Name, IMAGE_SIZEOF_SHORT_NAME, ".misc");
     sec_hdr.Misc.VirtualSize = o32->o32_vsize;
+    #ifdef ALLOW_NEGATIVE_PE_RVAs
+    sec_hdr.VirtualAddress = o32->o32_realaddr;
+    #else
     sec_hdr.VirtualAddress = o32->o32_rva;
+    #endif
     sec_hdr.SizeOfRawData = min(o32->o32_psize, o32->o32_vsize); /* probably wrong, fixed later */
     sec_hdr.PointerToRawData = raw_data_ptr; /* probably wrong, fixed later */
     sec_hdr.PointerToRelocations = 0;
@@ -485,6 +509,9 @@ void fixup_section(FILE *f, size_t section_idx, uint32_t section_headers_off,
     fwrite(&raw_data_size, sizeof(raw_data_size), 1, f);
     fseek(f, pos, SEEK_SET);
 }
+
+/* #enregion */
+#endif
 
 uint32_t __phys_to_virt(void *ptr, struct binfs_header *binfs_hdr)
 {
@@ -671,7 +698,7 @@ void dump_rom(uint8_t *buf, uint32_t file_off, uint32_t virtual_base, uint32_t p
             write_section_header(f, &o32[i], 0);
         for(uint32_t i = 0; i < e32->e32_objcnt; i++)
         {
-            fseek(f, align(ftell(f), 0x1000), SEEK_SET);
+            fseek(f, align(ftell(f), PE_SECTION_ALIGNMENT), SEEK_SET);
             size_t pos = ftell(f);
             write_section_data(f, &o32[i], virtual_base, file_off);
             size_t pos_end = ftell(f);
