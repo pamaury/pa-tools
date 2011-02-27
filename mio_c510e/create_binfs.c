@@ -25,7 +25,7 @@ struct binfs_header
 };
 
 /* globals */
-uint32_t g_start_address = 0x8c000000;
+uint32_t g_start_address = 0x30000000;
 
 void *load_file(char *name, size_t *size)
 {
