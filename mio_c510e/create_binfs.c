@@ -25,7 +25,7 @@ struct binfs_header
 };
 
 /* globals */
-uint32_t g_start_address = 0x30000000;
+uint32_t g_start_address = 0;
 
 void *load_file(char *name, size_t *size)
 {
@@ -65,21 +65,6 @@ void write_file(char *name, void *buf, size_t size)
     fclose(f);
 }
 
-#ifdef ADD_XIPCHAIN
-uint32_t extract_virtual_size(void *fw, size_t fw_size)
-{
-    uint32_t sig = *(uint32_t *)(fw + ROM_SIGNATURE_OFFSET);
-    if(sig != ROM_SIGNATURE)
-    {
-        printf("Wrong ROM signature !\n");
-        return 0;
-    }
-    uint32_t toc_ptr = *(uint32_t *)(fw + ROM_TOC_POINTER_OFFSET);
-    ROMHDR *romhdr = (ROMHDR *)(fw + toc_ptr - g_start_address);
-    return romhdr->physlast - romhdr->physfirst;
-}
-#endif
-
 void *build_image(void *fw, size_t fw_size, void *hdr, size_t hdr_size, size_t *binfs_size)
 {
     #ifdef ADD_XIPCHAIN
@@ -93,8 +78,36 @@ void *build_image(void *fw, size_t fw_size, void *hdr, size_t hdr_size, size_t *
     memcpy(binfs, hdr, hdr_size);
     memcpy(binfs + hdr_size, fw, fw_size);
 
-    #ifdef ADD_XIPCHAIN
-    uint32_t fw_virt_size = extract_virtual_size(fw, fw_size);
+    uint32_t sig = *(uint32_t *)(fw + ROM_SIGNATURE_OFFSET);
+    if(sig != ROM_SIGNATURE)
+    {
+        printf("Wrong ROM signature !\n");
+        free(binfs);
+        return NULL;
+    }
+    uint32_t toc_ptr = *(uint32_t *)(fw + ROM_TOC_POINTER_OFFSET);
+    /* try to find the rom header, since we don't know the virtual base address
+     * and that the toc_ptr is a virtual address. Assume image base is a multiple
+     * of 0x1000.
+     * Begin with a lowest possible address such that (fw + toc_ptr - g_start_address)
+     * is the end of file.
+     * End with the highest possible address such that fw + toc_ptr - g_start_address)
+     * is the beginning of the file */
+    #define VIRTUAL_BASE_ALIGN  0x1000 /* assume power of 2 */
+    ROMHDR *romhdr = NULL;
+    g_start_address = (toc_ptr - fw_size) & ~(VIRTUAL_BASE_ALIGN - 1);
+    for(; g_start_address < toc_ptr; g_start_address += VIRTUAL_BASE_ALIGN)
+    {
+        romhdr = (ROMHDR *)(fw + toc_ptr - g_start_address);
+        /* check physfirst */
+        if(romhdr->physfirst == g_start_address)
+            break;
+        else
+            romhdr = NULL;
+    }
+    printf("Virtual base address is 0x%08x\n", g_start_address);
+
+    uint32_t fw_virt_size = romhdr->physlast - romhdr->physfirst;
 
     struct binfs_header *mod = (struct binfs_header *)(binfs + BINFS_HDR_OFFSET);
     mod->xip_kernel_start = g_start_address;
@@ -106,6 +119,8 @@ void *build_image(void *fw, size_t fw_size, void *hdr, size_t hdr_size, size_t *
     mod->chain_len = sizeof(XIPCHAIN_INFO);
     mod->xip_start = g_start_address;
     mod->xip_len = fw_virt_size;
+    
+    #ifdef ADD_XIPCHAIN
     XIPCHAIN_INFO *xipchain = (XIPCHAIN_INFO *)(binfs + hdr_size + fw_size);
     memset(xipchain, 0, sizeof(XIPCHAIN_INFO));
     xipchain->cXIPs = 1;

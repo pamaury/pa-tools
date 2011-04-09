@@ -59,10 +59,30 @@ extern "C" {
 #define ROM_TOC_POINTER_OFFSET 0x44         // Offset from the image's physfirst address to the TOC pointer.
 #define ROM_TOC_OFFSET_OFFSET  0x48         // Offset from the image's physfirst address to the TOC offset (from physfirst).
 
-#ifndef ASM_ONLY
-
 #define ROM_EXTRA 9
 
+#ifdef ASM_ONLY
+
+#define E32ROM_objcnt       0
+#define E32ROM_imageflags   4
+#define E32ROM_entryrva     8
+#define E32ROM_vbase        12
+#define E32ROM_subsysmajor  16
+#define E32ROM_subsysminor  20
+#define E32ROM_stackmax     24
+#define E32ROM_vsize        28
+#define E32ROM_sect14rva    32
+#define E32ROM_sect14size   36
+#define E32ROM_subsys       108
+
+#define O32ROM_vsize        0
+#define O32ROM_rva          4
+#define O32ROM_psize        8
+#define O32ROM_dataptr      12
+#define O32ROM_realaddr     16
+#define O32ROM_flags        20
+
+#else
 struct info {                       /* Extra information header block      */
     uint32_t   rva;            /* Virtual relative address of info    */
     uint32_t   size;           /* Size of information block           */
@@ -91,6 +111,7 @@ typedef struct o32_rom {
     uint32_t       o32_realaddr;   /* pointer to actual                */
     uint32_t       o32_flags;      /* Attribute flags for the object   */
 } o32_rom;
+#endif
 
 #define IOCTL_BIN_GET_E32   CTL_CODE(FILE_DEVICE_FILE_SYSTEM, 0x1, METHOD_BUFFERED, FILE_READ_ACCESS)
 #define IOCTL_BIN_GET_O32   CTL_CODE(FILE_DEVICE_FILE_SYSTEM, 0x2, METHOD_BUFFERED, FILE_READ_ACCESS)
