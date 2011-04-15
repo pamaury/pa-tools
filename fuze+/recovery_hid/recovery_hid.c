@@ -26,11 +26,19 @@ int main(int argc, char **argv)
     uint8_t msg[0x20];
     uint8_t *p;
     FILE *f;
-    int i, max_pkt_size, nr_xfers, recv_size;
+    int i, xfer_size, nr_xfers, recv_size;
 
-    if(argc != 2)
+    if(argc != 3)
     {
-        printf("usage: %s <file>\n", argv[0]);
+        printf("usage: %s <xfer size> <file>\n", argv[0]);
+        return 1;
+    }
+
+    char *end;
+    xfer_size = strtol(argv[1], &end, 0);
+    if(end != (argv[1] + strlen(argv[1])))
+    {
+        printf("Invalid transfer size !\n");
         return 1;
     }
     
@@ -59,7 +67,7 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    f = fopen(argv[1], "r");
+    f = fopen(argv[2], "r");
     if(f == NULL)
     {
         perror("cannot open file");
@@ -69,11 +77,10 @@ int main(int argc, char **argv)
     size_t size = ftell(f);
     fseek(f, 0, SEEK_SET);
 
-    max_pkt_size = /*libusb_get_max_packet_size(libusb_get_device(dev), 0)*/1024;
-    printf("Max packet size: %d\n", max_pkt_size);
-    nr_xfers = (size + max_pkt_size - 1) / max_pkt_size;
-    uint8_t *file_buf = malloc(nr_xfers * max_pkt_size);
-    memset(file_buf, 0xff, nr_xfers * max_pkt_size); // pad with 0xff
+    printf("Transfer size: %d\n", xfer_size);
+    nr_xfers = (size + xfer_size - 1) / xfer_size;
+    uint8_t *file_buf = malloc(nr_xfers * xfer_size);
+    memset(file_buf, 0xff, nr_xfers * xfer_size); // pad with 0xff
     if(fread(file_buf, size, 1, f) != 1)
     {
         perror("read error");
@@ -111,16 +118,16 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    uint8_t *xfer_buf = malloc(1 + max_pkt_size);
+    uint8_t *xfer_buf = malloc(1 + xfer_size);
 
     for(i = 0; i < nr_xfers; i++)
     {
         xfer_buf[0] = 0x2;
-        memcpy(&xfer_buf[1], &file_buf[i * max_pkt_size], max_pkt_size);
+        memcpy(&xfer_buf[1], &file_buf[i * xfer_size], xfer_size);
         
         ret = libusb_control_transfer(dev, 
             LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_RECIPIENT_INTERFACE, 
-            0x9, 0x202, 0, xfer_buf, max_pkt_size + 1, 1000);
+            0x9, 0x202, 0, xfer_buf, xfer_size + 1, 1000);
         if(ret < 0)
         {
             printf("transfer error at send step %d\n", i);
@@ -128,7 +135,7 @@ int main(int argc, char **argv)
         }
     }
 
-    ret = libusb_interrupt_transfer(dev, 0x81, xfer_buf, max_pkt_size, &recv_size,
+    ret = libusb_interrupt_transfer(dev, 0x81, xfer_buf, xfer_size, &recv_size,
         1000);
     if(ret < 0)
     {
