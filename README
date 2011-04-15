@@ -16,3 +16,10 @@ o pe_tools/pe_wince_rebase
   It uses the .sec2va section added by rom_info, and does it best.
 o mio_C501e/
   Some tools related to the Mio C510e device, running WinCE. Many ROM related.
+o fuze+/
+  Some tools related to the Fuze+
+o fuze+/recovery_hid/
+  A tool to send a .sb file to the HID-based recovery mode of the imx233 (used by the fuze+)
+o devrandomizer/
+  A tool to log /dev/random data to a file & to read /dev/random from a file using ptrace. 
+  This allows to derandomize a program using /dev/random by logging the random data and reusing it later.
