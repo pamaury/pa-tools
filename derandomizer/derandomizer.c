@@ -32,6 +32,21 @@ typedef uint64_t arg_t;
 typedef uint32_t arg_t;
 #endif
 
+#if __WORDSIZE == 64
+arg_t translate_32_to_64_syscall(arg_t a)
+{
+    switch(a)
+    {
+        case 3: return __NR_read;
+        case 4: return __NR_write;
+        case 5: return __NR_open;
+        case 6: return __NR_close;
+        case 13: return __NR_time;
+        default: return a;
+    }
+}
+#endif
+
 ssize_t read_user_mem(arg_t addr, char *buf, int len)
 {
     static int mem_fd = -1;
@@ -79,6 +94,28 @@ ssize_t put_user_mem(arg_t addr, char *buf, int len)
     #undef WS
     return cpy_len;
 }
+
+#if __WORDSIZE == 64
+bool is_32bit_syscall(struct user_regs_struct *regs)
+{
+    if(regs->cs == 0x23)
+        return true; /* 32-bit CPU mode */
+    if(regs->cs != 0x33)
+    {
+        printf("[derandomizer] unknown syscall type\n");
+        return false;
+    }
+    uint16_t instr;
+    if(read_user_mem(regs->rip - 2, (char *)&instr, 2) != 2)
+        return false;
+    switch(instr)
+    {
+        case 0x050f: return false;
+        case 0x80cd: return true;
+        default: return false;
+    }
+}
+#endif
 
 void exec_child(int argc, char **argv)
 {
@@ -247,39 +284,53 @@ int main(int argc, char **argv)
             perror("[derandomizer] ptrace(getregs) failed\n");
             break;
         }
-
+        
+        arg_t syscall, arg1, arg2, arg3, result;
         #if __WORDSIZE == 64
-        arg_t syscall = regs.orig_rax;
-        arg_t arg1 = regs.rdi;
-        arg_t arg2 = regs.rsi;
-        arg_t arg3 = regs.rdx;
-        arg_t result = regs.rax;
+        bool _32bit_syscall = is_32bit_syscall(&regs);
+        syscall = regs.orig_rax;
+        if(_32bit_syscall)
+        {
+            arg1 = regs.rbx;
+            arg2 = regs.rcx;
+            arg3 = regs.rdx;
+            syscall = translate_32_to_64_syscall(syscall);
+        }
+        else
+        {
+            arg1 = regs.rdi;
+            arg2 = regs.rsi;
+            arg3 = regs.rdx;
+        }
+        result = regs.rax;
         #elif __WORDSIZE == 32
-        arg_t syscall = regs.orig_eax;
-        arg_t arg1 = regs.ebx;
-        arg_t arg2 = regs.ecx;
-        arg_t arg3 = regs.edx;
-        arg_t result = regs.eax;
+        syscall = regs.orig_eax;
+        arg1 = regs.ebx;
+        arg2 = regs.ecx;
+        arg3 = regs.edx;
+        result = regs.eax;
         #endif
         if(syscall == __NR_open)
         {
             if(syscall_entry && provide_rand)
             {
                 char buf[128];
-                if(read_user_mem(arg1, buf, 128) == 128 && strcmp(buf, "/dev/random") == 0)
+                if(read_user_mem(arg1, buf, 128) == 128 &&
+                    (strcmp(buf, "/dev/random") == 0 || strcmp(buf, "/dev/urandom") == 0))
                 {
                     put_user_mem(arg1, "/dev/zero", strlen("/dev/zero") + 1);
                     syscall_entry = false;
                     ptrace(PTRACE_SYSCALL, child_pid, NULL, NULL);
                     wait4(child_pid, &stat, WUNTRACED, &rus);
-                    put_user_mem(arg1, "/dev/random", strlen("/dev/random"));
+                    put_user_mem(arg1, buf, strlen(buf));
                     goto Lanalyze;
                 }
             }
             if(!syscall_entry)
             {
                 char buf[128];
-                if(read_user_mem(arg1, buf, 128) == 128 && strcmp(buf, "/dev/random") == 0)
+                if(read_user_mem(arg1, buf, 128) == 128 &&
+                    (strcmp(buf, "/dev/random") == 0 || strcmp(buf, "/dev/urandom") == 0))
                 {
                     if(dev_random_fd != -1)
                         printf("[derandomizer] /dev/random opened several times !\n");
