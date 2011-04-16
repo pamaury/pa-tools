@@ -1,0 +1,3 @@
+On linux system using VDSO, the time syscall is not used, it's forwarded to gettimeofday which uses VDSO.
+To have this program working, one must disable VDSO. Using, root user can do it this way:
+echo 0 > /proc/sys/kernel/vsyscall64
