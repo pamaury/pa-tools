@@ -22,8 +22,22 @@ int main(int argc, char **argv)
         perror("Unable to open /dev/random");
         return 1;
     }
-    int data;
-    if(read(fd, &data, sizeof data) != sizeof data)
+    uint8_t data8;
+    if(read(fd, &data8, sizeof data8) != sizeof data8)
+    {
+        perror("Unable to read from /dev/random");
+        close(fd);
+        return 1;
+    }
+    uint16_t data16;
+    if(read(fd, &data16, sizeof data16) != sizeof data16)
+    {
+        perror("Unable to read from /dev/random");
+        close(fd);
+        return 1;
+    }
+    uint32_t data32;
+    if(read(fd, &data32, sizeof data32) != sizeof data32)
     {
         perror("Unable to read from /dev/random");
         close(fd);
@@ -32,7 +46,7 @@ int main(int argc, char **argv)
     time_t tm = time(NULL);
     char buf[128];
     strftime(buf, 128, "%c", localtime(&tm));
-    printf("%s %d %d\n", buf, data, rand());
+    printf("%s %d %d %d %d\n", buf, data8, data16, data32, rand());
     close(fd);
     return 0;
 }
