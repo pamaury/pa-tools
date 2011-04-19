@@ -1,0 +1,22 @@
+sources
+{
+    stage0 = "hw_init/firmware.____.0.elf";
+    stage1 = "hw_init/firmware.____.1.elf";
+    stage2 = "hw_init/firmware.____.2.elf";
+    stage3 = "hw_init/firmware.____.3.elf";
+    recovery = "recovery.elf";
+}
+
+section(0x626f6f74)
+{
+    load stage0;
+    call stage0;
+    load stage1;
+    call stage1;
+    //load stage2;
+    //call stage2;
+    //load stage3;
+    //call stage3;
+    load recovery;
+    jump recovery;
+}
