@@ -19,10 +19,11 @@ SECTIONS
     
     .octext :
     {
-        *(.octext)
+        *(.icode)
+        *(.idata)
+        *(.irodata)
+        *(.ibss)
         *(.init.text)
-        *(.init.data*)
-        *(.init.rodata*)
         . = ALIGN(0x4);
     } > OCRAM
 
