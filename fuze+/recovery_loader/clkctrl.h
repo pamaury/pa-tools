@@ -4,8 +4,19 @@
 #include "system.h"
 
 #define HW_CLKCTRL_BASE     0x80040000
+
 #define HW_CLKCTRL_XTAL     (*(volatile uint32_t *)(HW_CLKCTRL_BASE + 0x50))
 #define HW_CLKCTRL_XTAL__TIMROT_CLK32K_GATE (1 << 26)
+
+#define HW_CLKCTRL_PIX      (*(volatile uint32_t *)(HW_CLKCTRL_BASE + 0x60))
+
+#define HW_CLKCTRL_CLKSEQ   (*(volatile uint32_t *)(HW_CLKCTRL_BASE + 0x110))
+#define HW_CLKCTRL_CLKSEQ__BYPASS_PIX   (1 << 1)
+
+enum imx233_clock_t
+{
+    CLK_PIX,
+};
 
 static inline void imx233_enable_timrot_xtal_clk32k(bool enable)
 {
@@ -14,5 +25,9 @@ static inline void imx233_enable_timrot_xtal_clk32k(bool enable)
     else
         __REG_SET(HW_CLKCTRL_XTAL) = HW_CLKCTRL_XTAL__TIMROT_CLK32K_GATE;
 }
+
+void imx233_enable_clock(enum imx233_clock_t clk, bool enable);
+void imx233_set_clock_divisor(enum imx233_clock_t clk, int div);
+void imx233_set_bypass_pll(enum imx233_clock_t clk, bool bypass);
 
 #endif /* __clocks_h__ */

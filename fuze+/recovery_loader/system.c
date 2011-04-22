@@ -35,13 +35,16 @@ void UIRQ(void)
 }
 
 default_interrupt(INT_TIMER0);
-default_interrupt(INT_USB_CTRL);
+default_interrupt(INT_LCDIF_DMA);
+default_interrupt(INT_LCDIF_ERROR);
 
 typedef void (*isr_t)(void);
 
 static isr_t isr_table[INT_SRC_NR_SOURCES] =
 {
     [INT_SRC_TIMER0] = INT_TIMER0,
+    [INT_SRC_LCDIF_DMA] = INT_LCDIF_DMA,
+    [INT_SRC_LCDIF_ERROR] = INT_LCDIF_ERROR,
 };
 
 void irq_handler(void)
@@ -94,4 +97,19 @@ void power_off(void)
     HW_POWER_RESET = HW_POWER_RESET__UNLOCK;
     HW_POWER_RESET = HW_POWER_RESET__UNLOCK | HW_POWER_RESET__PWD;
     while(1);
+}
+
+bool imx233_tick_elapsed(uint32_t ref, unsigned us_delay)
+{
+    uint32_t cur = HW_DIGCTL_MICROSECONDS;
+    if(ref + us_delay <= ref)
+        return !(cur > ref) && !(cur < (ref + us_delay));
+    else
+        return (cur < ref) || cur >= (ref + us_delay);
+}
+
+void udelay(unsigned us)
+{
+    uint32_t ref = HW_DIGCTL_MICROSECONDS;
+    while(!imx233_tick_elapsed(ref, us));
 }

@@ -7,6 +7,8 @@
 #include "system-arm.h"
 
 #define INT_SRC_TIMER0      28
+#define INT_SRC_LCDIF_DMA   45
+#define INT_SRC_LCDIF_ERROR 46
 #define INT_SRC_NR_SOURCES  66
 
 #define HZ  100
@@ -19,5 +21,7 @@ extern volatile long current_tick;
 void imx233_enable_interrupt(int src, bool enable);
 void imx233_softirq(int src, bool enable);
 void system_init(void);
+void udelay(unsigned us);
+bool imx233_tick_elapsed(uint32_t ref, unsigned us_delay);
 
 #endif /* __system_h__ */

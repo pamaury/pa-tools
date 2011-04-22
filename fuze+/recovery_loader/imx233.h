@@ -1,6 +1,8 @@
 #ifndef __imx233_h__
 #define __imx233_h__
 
+#include "config.h"
+
 #define __REG_SET(reg)  (*((volatile uint32_t *)(&reg + 1)))
 #define __REG_CLR(reg)  (*((volatile uint32_t *)(&reg + 2)))
 #define __REG_TOG(reg)  (*((volatile uint32_t *)(&reg + 3)))
