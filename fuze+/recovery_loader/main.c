@@ -5,16 +5,23 @@
 #include "timer.h"
 #include "pinctrl.h"
 #include "lcd.h"
-
-#define USB_BASE            0x80080000
-#define REG_USBCMD          (*(volatile unsigned int *)(USB_BASE+0x140))
+#include "usb.h"
+#include "logf.h"
 
 #define HW_DIGCTL_STATUS    (*(volatile uint32_t *)(HW_DIGCTL_BASE + 0x10))
 
-#define USBCMD_RUN          0x00000001
-
 void power_off(void);
 void system_init(void);
+
+void software_whatchdog(void)
+{
+    if(current_tick > 10 * HZ)
+    {
+        disable_irq();
+        disable_fiq();
+        power_off();
+    }
+}
 
 void main()
 {
@@ -22,13 +29,14 @@ void main()
     enable_irq();
     enable_fiq();
     timer_init();
+    register_timer_function(&software_whatchdog);
     pinctrl_init();
+    usb_init();
     lcd_init();
 
-    REG_USBCMD &= ~USBCMD_RUN;
-    for(int i = 0; i < 1000; i++)
-        __asm__ volatile("nop");
-
+    while(1)
+        usb_task();
+    
     disable_irq();
     disable_fiq();
     power_off();

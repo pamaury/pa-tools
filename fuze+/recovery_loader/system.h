@@ -6,6 +6,7 @@
 #include "imx233.h"
 #include "system-arm.h"
 
+#define INT_SRC_USB_CTRL    11
 #define INT_SRC_TIMER0      28
 #define INT_SRC_LCDIF_DMA   45
 #define INT_SRC_LCDIF_ERROR 46
@@ -21,6 +22,7 @@ extern volatile long current_tick;
 void imx233_enable_interrupt(int src, bool enable);
 void imx233_softirq(int src, bool enable);
 void system_init(void);
+void system_reset(void);
 void udelay(unsigned us);
 bool imx233_tick_elapsed(uint32_t ref, unsigned us_delay);
 

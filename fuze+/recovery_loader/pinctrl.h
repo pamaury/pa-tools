@@ -69,7 +69,7 @@ static inline void imx233_set_gpio_output_mask(unsigned bank, uint32_t pin_mask,
         __REG_CLR(HW_PINCTRL_DOUT(bank)) = pin_mask;
 }
 
-static uint32_t imx233_get_gpio_input_mask(unsigned bank, uint32_t pin_mask)
+static inline uint32_t imx233_get_gpio_input_mask(unsigned bank, uint32_t pin_mask)
 {
     return HW_PINCTRL_DIN(bank) & pin_mask;
 }

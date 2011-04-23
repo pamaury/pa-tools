@@ -4,6 +4,7 @@
 #include "stdint.h"
 
 typedef uint32_t size_t;
+typedef int32_t ssize_t;
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 

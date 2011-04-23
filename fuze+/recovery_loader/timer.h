@@ -27,6 +27,9 @@
 
 #define HW_TIMROT_TIMCOUNT(i)   (*(volatile uint32_t *)(HW_TIMROT_BASE + 0x30 + (i) * 0x20))
 
+typedef void (*timer_fn_t)(void);
+
 void timer_init(void);
+void register_timer_function(timer_fn_t fn);
 
 #endif /* __timer_h__ */

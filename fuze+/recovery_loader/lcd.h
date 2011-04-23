@@ -7,6 +7,7 @@
 
 #define HW_LCDIF_CTRL           (*(volatile uint32_t *)(HW_LCDIF_BASE + 0x0))
 #define HW_LCDIF_CTRL__WORD_LENGTH_16_BIT   (0 << 8)
+#define HW_LCDIF_CTRL__WORD_LENGTH_8_BIT    (1 << 8)
 #define HW_LCDIF_CTRL__WORD_LENGTH_18_BIT   (2 << 8)
 #define HW_LCDIF_CTRL__WORD_LENGTH_24_BIT   (3 << 8)
 #define HW_LCDIF_CTRL__WORD_LENGTH_BM       (3 << 8)
@@ -14,6 +15,7 @@
 #define HW_LCDIF_CTRL__LCDIF_MASTER         (1 << 5)
 #define HW_LCDIF_CTRL__DATA_FORMAT_24_BIT   0x2
 #define HW_LCDIF_CTRL__RUN                  0x1
+#define HW_LCDIF_CTRL__DATA_SELECT          (1 << 16)
 
 #define HW_LCDIF_CTRL1          (*(volatile uint32_t *)(HW_LCDIF_BASE + 0x10))
 #define HW_LCDIF_CTRL_1__IRQ_EN_BP      12
@@ -44,8 +46,23 @@
 #define HW_LCDIF_CSC_OFFSET     (*(volatile uint32_t *)(HW_LCDIF_BASE + 0x160))
 #define HW_LCDIF_CSC_LIMIT      (*(volatile uint32_t *)(HW_LCDIF_BASE + 0x170))
 #define HW_LCDIF_DATA           (*(volatile uint32_t *)(HW_LCDIF_BASE + 0x1b0))
+
 #define HW_LCDIF_STAT           (*(volatile uint32_t *)(HW_LCDIF_BASE + 0x1d0))
+#define HW_LCDIF_STAT__LFIFO_FULL   (1 << 29)
+#define HW_LCDIF_STAT__LFIFO_EMPTY  (1 << 28)
+#define HW_LCDIF_STAT__TXFIFO_FULL  (1 << 27)
+#define HW_LCDIF_STAT__TXFIFO_EMPTY (1 << 26)
+#define HW_LCDIF_STAT__BUSY         (1 << 25)
 
 void lcd_init(void);
+
+enum lcd_kind_t
+{
+    LCD_KIND_7783 = 0x7783,
+    LCD_KIND_9325 = 0x9325,
+    LCD_KIND_OTHER = 0,
+};
+
+enum lcd_kind_t get_lcd_kind();
 
 #endif /* __lcd_h__ */

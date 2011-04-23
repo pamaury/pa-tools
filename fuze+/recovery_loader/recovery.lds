@@ -47,7 +47,7 @@ SECTIONS
     {
         *(.bss)
         . = ALIGN(0x4);
-    } > OCRAM
+    } > SDRAM
 
     /DISCARD/ :
     {

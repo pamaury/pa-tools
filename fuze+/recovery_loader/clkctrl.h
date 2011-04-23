@@ -13,6 +13,10 @@
 #define HW_CLKCTRL_CLKSEQ   (*(volatile uint32_t *)(HW_CLKCTRL_BASE + 0x110))
 #define HW_CLKCTRL_CLKSEQ__BYPASS_PIX   (1 << 1)
 
+#define HW_CLKCTRL_RESET    (*(volatile uint32_t *)(HW_CLKCTRL_BASE + 0x120))
+#define HW_CLKCTRL_RESET_CHIP   0x2
+#define HW_CLKCTRL_RESET_DIG    0x1
+
 enum imx233_clock_t
 {
     CLK_PIX,

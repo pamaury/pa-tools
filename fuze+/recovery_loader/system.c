@@ -1,4 +1,5 @@
 #include "system.h"
+#include "clkctrl.h"
 
 #define HW_POWER_BASE           0x80044000
 
@@ -34,6 +35,7 @@ void UIRQ(void)
 {
 }
 
+default_interrupt(INT_USB_CTRL);
 default_interrupt(INT_TIMER0);
 default_interrupt(INT_LCDIF_DMA);
 default_interrupt(INT_LCDIF_ERROR);
@@ -42,6 +44,7 @@ typedef void (*isr_t)(void);
 
 static isr_t isr_table[INT_SRC_NR_SOURCES] =
 {
+    [INT_SRC_USB_CTRL] = INT_USB_CTRL,
     [INT_SRC_TIMER0] = INT_TIMER0,
     [INT_SRC_LCDIF_DMA] = INT_LCDIF_DMA,
     [INT_SRC_LCDIF_ERROR] = INT_LCDIF_ERROR,
@@ -91,12 +94,14 @@ void system_init(void)
 
 void power_off(void)
 {
-    /* FIXME: this seems to be needed to correctly shutdown the chip */
-    __REG_CLR(HW_ICOLL_CTRL) = HW_ICOLL_CTRL__IRQ_FINAL_ENABLE;
     /* power down */
-    HW_POWER_RESET = HW_POWER_RESET__UNLOCK;
     HW_POWER_RESET = HW_POWER_RESET__UNLOCK | HW_POWER_RESET__PWD;
     while(1);
+}
+
+void system_reset(void)
+{
+    HW_CLKCTRL_RESET = HW_CLKCTRL_RESET_DIG;
 }
 
 bool imx233_tick_elapsed(uint32_t ref, unsigned us_delay)

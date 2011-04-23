@@ -1,6 +1,8 @@
 #include "lcd.h"
 #include "pinctrl.h"
 #include "clkctrl.h"
+#include "stddef.h"
+#include "logf.h"
 
 /**
  * LCD parameters:
@@ -18,9 +20,16 @@
  */
 
 static unsigned int g_lcdif_word_length;
+static enum lcd_kind_t g_lcd_kind;
+
+enum lcd_kind_t get_lcd_kind()
+{
+    return g_lcd_kind;
+}
 
 static void reset_lcdif()
 {
+    logf("reset_lcdif\n");
     __REG_CLR(HW_LCDIF_CTRL) = __BLOCK_SFTRST;
     while(HW_LCDIF_CTRL & __BLOCK_SFTRST);
     __REG_CLR(HW_LCDIF_CTRL) = __BLOCK_CLKGATE;
@@ -30,10 +39,12 @@ static void reset_lcdif()
     while(HW_LCDIF_CTRL & __BLOCK_SFTRST);
     __REG_CLR(HW_LCDIF_CTRL) = __BLOCK_CLKGATE;
     while(HW_LCDIF_CTRL & __BLOCK_CLKGATE);
+    logf("end reset\n");
 }
 
 static void setup_lcdif_parameters(void)
 {
+    logf("setup_lcdif_parameters\n");
     reset_lcdif();
     HW_LCDIF_CTRL = HW_LCDIF_CTRL__DATA_FORMAT_24_BIT |
         g_lcdif_word_length | HW_LCDIF_CTRL__LCD_DATABUS_WIDTH_18_BIT;
@@ -45,6 +56,7 @@ static void setup_lcdif_parameters(void)
 
 static void setup_lcd(bool use_gpio)
 {
+    logf("setup_lcd\n");
     if(!use_gpio)
     {
         imx233_set_pin_function(1, 25, PINCTRL_FUNCTION_GPIO); /* lcd_vsync */
@@ -83,6 +95,7 @@ static void setup_lcd(bool use_gpio)
 
 static void setup_lcd_ter(bool use_gpio)
 {
+    logf("setup_lcd_ter\n");
     if(use_gpio)
     {
         imx233_set_pin_drive_strength(1, 19, PINCTRL_DRIVE_12mA); /* lcd_rs */
@@ -152,12 +165,19 @@ static void lcdif_enable_irqs(unsigned irq_bm)
 
 static void setup_lcd_subsystem()
 {
+    logf("setup_lcd_subsystem\n");
     g_lcdif_word_length = HW_LCDIF_CTRL__WORD_LENGTH_18_BIT;
     setup_lcdif_parameters();
     lcd_enable(false);
     lcdif_enable_bus_master(true);
     lcdif_enable_irqs(HW_LCDIF__CUR_FRAME_DONE_IRQ);
     /* enable irq ? */
+}
+
+static void lcdif_wait_ready()
+{
+    logf("lcdif_wait_ready\n");
+    while(HW_LCDIF_CTRL & HW_LCDIF_CTRL__RUN);
 }
 
 static inline uint32_t encode_16_to_18(uint32_t a)
@@ -172,6 +192,7 @@ static inline uint32_t decode_18_to_16(uint32_t a)
 
 static void setup_lcd_clocks()
 {
+    logf("setup_lcd_clocks\n");
     /* the LCD seems to works at 24Mhz, so use the xtal clock with no divider */
     imx233_enable_clock(CLK_PIX, false);
     imx233_set_clock_divisor(CLK_PIX, 1);
@@ -181,6 +202,7 @@ static void setup_lcd_clocks()
 
 static void lcdif_write_read_single_gpio(uint32_t data_out, uint32_t *data_in)
 {
+    logf("lcdif_write_read_single_gpio\n");
     imx233_set_gpio_output(1, 21, true); /* lcd_cs */
     imx233_set_gpio_output(1, 19, true); /* lcd_rs */
     imx233_set_gpio_output(1, 23, true); /* lcd_enable */
@@ -217,10 +239,51 @@ static void lcdif_write_read_single_gpio(uint32_t data_out, uint32_t *data_in)
 
 static void lcdif_send(bool data_mode, unsigned len, uint32_t *buf)
 {
+    logf("lcdif_send\n");
+    unsigned max_xfer_size = 0xffff;
+    if(len == 0)
+        return;
+    if(g_lcdif_word_length == HW_LCDIF_CTRL__WORD_LENGTH_16_BIT)
+        max_xfer_size = 0x1fffe;
+    lcdif_wait_ready();
+    lcdif_enable_irqs(0);
+    lcdif_enable_bus_master(false);
+
+    do
+    {
+        unsigned burst = MIN(len, max_xfer_size);
+        len -= burst;
+        unsigned count = burst;
+        if(g_lcdif_word_length != HW_LCDIF_CTRL__WORD_LENGTH_8_BIT)
+        {
+            
+            if(burst & 1)
+                burst++;
+            count = burst / 2;
+        }
+        else
+            count = burst;
+        HW_LCDIF_TRANSFER_COUNT = 0;
+        HW_LCDIF_TRANSFER_COUNT = 0x1000 | count;
+        __REG_CLR(HW_LCDIF_CTRL) = HW_LCDIF_CTRL__DATA_SELECT | HW_LCDIF_CTRL__RUN;
+        if(data_mode)
+            __REG_SET(HW_LCDIF_CTRL) = HW_LCDIF_CTRL__DATA_SELECT;
+        __REG_SET(HW_LCDIF_CTRL) = HW_LCDIF_CTRL__RUN;
+        burst = (burst + 3) / 4;
+        while(burst-- > 0)
+        {
+            while(HW_LCDIF_STAT & HW_LCDIF_STAT__LFIFO_FULL);
+            HW_LCDIF_DATA = *buf++;
+        }
+        while(HW_LCDIF_CTRL & HW_LCDIF_CTRL__RUN);
+    }while(len > 0);
+    lcdif_enable_bus_master(true);
+    lcdif_enable_irqs(HW_LCDIF__CUR_FRAME_DONE_IRQ);
 }
 
 static void lcdif_send_cmd_data(uint32_t cmd, uint32_t data)
 {
+    logf("lcdif_send_cmd_data\n");
     uint32_t old_cmd = cmd;
     /* get back to 18-bit word length */
     if(g_lcdif_word_length == HW_LCDIF_CTRL__WORD_LENGTH_24_BIT)
@@ -250,6 +313,7 @@ static void lcdif_send_cmd_data(uint32_t cmd, uint32_t data)
 
 static void lcd_init_1(uint32_t data_out, uint32_t *data_in)
 {
+    logf("lcd_init_1\n");
     setup_lcd_ter(true);
     lcdif_write_read_single_gpio(encode_16_to_18(data_out), data_in);
     *data_in = decode_18_to_16(*data_in);
@@ -259,7 +323,21 @@ static void lcd_init_1(uint32_t data_out, uint32_t *data_in)
 
 void lcd_init(void)
 {
+    logf("lcd_init\n");
     setup_lcd_subsystem();
     setup_lcd_clocks();
-    /* lcd_init_1(?); */
+    
+    for(int i = 0; i < 10; i++)
+    {
+        uint32_t kind;
+        lcd_init_1(0, &kind);
+        logf("kind at step %d: 0x%x\n", i, kind);
+        if(kind == LCD_KIND_7783 || kind == LCD_KIND_9325)
+        {
+            g_lcd_kind = kind;
+            break;
+        }
+        else
+            g_lcd_kind = LCD_KIND_OTHER;
+    }
 }

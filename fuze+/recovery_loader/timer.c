@@ -1,12 +1,20 @@
 #include "timer.h"
-#include "clocks.h"
+#include "clkctrl.h"
 
 volatile long current_tick = 0;
+static timer_fn_t g_timer_fn = NULL;
 
 void INT_TIMER0(void)
 {
     current_tick++;
+    if(g_timer_fn)
+        g_timer_fn();
     __REG_CLR(HW_TIMROT_TIMCTRL(0)) = HW_TIMROT_TIMCTRL__IRQ;
+}
+
+void register_timer_function(timer_fn_t fn)
+{
+    g_timer_fn = fn;
 }
 
 void timer_init(void)
