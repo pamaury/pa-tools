@@ -5,20 +5,6 @@
 #include <stdbool.h>
 #include <string.h>
 
-struct command_block_wrapper
-{
-    unsigned int signature;
-    unsigned int tag;
-    unsigned int data_transfer_length;
-    unsigned char flags;
-    unsigned char lun;
-    unsigned char command_length;
-    unsigned char command_block[16];
-} __attribute__ ((packed));
-
-#define CBW_SIGNATURE            0x43425355
-#define SCSI_READ_10              0x28
-
 void main_loop(libusb_device_handle *handle)
 {
     libusb_device *device=libusb_get_device(handle);
