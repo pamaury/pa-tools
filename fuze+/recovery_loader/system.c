@@ -113,6 +113,19 @@ bool imx233_tick_elapsed(uint32_t ref, unsigned us_delay)
         return (cur < ref) || cur >= (ref + us_delay);
 }
 
+void imx233_reset_block(volatile uint32_t *block_reg)
+{
+    __REG_CLR(*block_reg) = __BLOCK_SFTRST;
+    while(*block_reg & __BLOCK_SFTRST);
+    __REG_CLR(*block_reg) = __BLOCK_CLKGATE;
+    __REG_SET(*block_reg) = __BLOCK_SFTRST;
+    while(!(*block_reg & __BLOCK_CLKGATE));
+    __REG_CLR(*block_reg) = __BLOCK_SFTRST;
+    while(*block_reg & __BLOCK_SFTRST);
+    __REG_CLR(*block_reg) = __BLOCK_CLKGATE;
+    while(*block_reg & __BLOCK_CLKGATE);
+}
+
 void udelay(unsigned us)
 {
     uint32_t ref = HW_DIGCTL_MICROSECONDS;

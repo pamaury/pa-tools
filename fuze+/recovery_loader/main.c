@@ -23,15 +23,15 @@ void software_whatchdog(void)
     }
 }
 
-void main()
+void main(void)
 {
     system_init();
     enable_irq();
     enable_fiq();
     timer_init();
     register_timer_function(&software_whatchdog);
-    pinctrl_init();
     usb_init();
+    pinctrl_init();
     lcd_init();
 
     while(1)

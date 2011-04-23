@@ -25,5 +25,6 @@ void system_init(void);
 void system_reset(void);
 void udelay(unsigned us);
 bool imx233_tick_elapsed(uint32_t ref, unsigned us_delay);
+void imx233_reset_block(volatile uint32_t *block_reg);
 
 #endif /* __system_h__ */

@@ -22,14 +22,7 @@ enum imx233_clock_t
     CLK_PIX,
 };
 
-static inline void imx233_enable_timrot_xtal_clk32k(bool enable)
-{
-    if(enable)
-        __REG_CLR(HW_CLKCTRL_XTAL) = HW_CLKCTRL_XTAL__TIMROT_CLK32K_GATE;
-    else
-        __REG_SET(HW_CLKCTRL_XTAL) = HW_CLKCTRL_XTAL__TIMROT_CLK32K_GATE;
-}
-
+void imx233_enable_timrot_xtal_clk32k(bool enable);
 void imx233_enable_clock(enum imx233_clock_t clk, bool enable);
 void imx233_set_clock_divisor(enum imx233_clock_t clk, int div);
 void imx233_set_bypass_pll(enum imx233_clock_t clk, bool bypass);

@@ -30,9 +30,9 @@ size_t logf_readback(char *buf, size_t max_size)
     if(logfread == logfwrite)
         return 0;
     if(logfread < logfwrite)
-        max_size = MIN(max_size, logfwrite - logfread);
+        max_size = MIN(max_size, (size_t)(logfwrite - logfread));
     else
-        max_size = MIN(max_size, MAX_LOGF_SIZE - logfread);
+        max_size = MIN(max_size, (size_t)(MAX_LOGF_SIZE - logfread));
     memcpy(buf, &logfbuffer[logfread], max_size);
     logfread += max_size;
     if(logfread == MAX_LOGF_SIZE)

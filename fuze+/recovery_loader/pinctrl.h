@@ -33,8 +33,8 @@ void pinctrl_init(void);
 
 static inline void imx233_set_pin_drive_strength(unsigned bank, unsigned pin, unsigned strength)
 {
-    __REG_CLR(HW_PINCTRL_MUXSEL(4 * bank + pin / 8)) = 3 << (4 * (pin % 8));
-    __REG_SET(HW_PINCTRL_MUXSEL(4 * bank + pin / 8)) = strength << (4 * (pin % 8));
+    __REG_CLR(HW_PINCTRL_DRIVE(4 * bank + pin / 8)) = 3 << (4 * (pin % 8));
+    __REG_SET(HW_PINCTRL_DRIVE(4 * bank + pin / 8)) = strength << (4 * (pin % 8));
 }
 
 static inline void imx233_enable_gpio_output(unsigned bank, unsigned pin, bool enable)

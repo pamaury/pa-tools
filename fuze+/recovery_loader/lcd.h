@@ -18,9 +18,12 @@
 #define HW_LCDIF_CTRL__DATA_SELECT          (1 << 16)
 
 #define HW_LCDIF_CTRL1          (*(volatile uint32_t *)(HW_LCDIF_BASE + 0x10))
-#define HW_LCDIF_CTRL_1__IRQ_EN_BP      12
-#define HW_LCDIF_CTRL_1__IRQ_EN_BM      (0xf << 12)
-#define HW_LCDIF_CTRL_1__IRQ_BP         8
+#define HW_LCDIF_CTRL1__RESET           1
+#define HW_LCDIF_CTRL1__BUSY_ENABLE     (1 << 2)
+#define HW_LCDIF_CTRL1__MODE86          (1 << 1)
+#define HW_LCDIF_CTRL1__IRQ_EN_BP       12
+#define HW_LCDIF_CTRL1__IRQ_EN_BM       (0xf << 12)
+#define HW_LCDIF_CTRL1__IRQ_BP          8
 #define HW_LCDIF_CTRL1__BYTE_PACKING_FORMAT_BM  (0xf << 16)
 #define HW_LCDIF_CTRL1__BYTE_PACKING_FORMAT_BP  16
 
@@ -63,6 +66,6 @@ enum lcd_kind_t
     LCD_KIND_OTHER = 0,
 };
 
-enum lcd_kind_t get_lcd_kind();
+enum lcd_kind_t get_lcd_kind(void);
 
 #endif /* __lcd_h__ */

@@ -495,7 +495,7 @@ static void usb_recv(void *buffer, unsigned len)
     usb_xfer(buffer, len, false);
 }
 
-static void usb_stall()
+static void usb_stall(void)
 {
     REG_ENDPTCTRL(0) |= EPCTRL_TX_EP_STALL | EPCTRL_RX_EP_STALL;
 }
@@ -581,7 +581,7 @@ static void handle_setup(struct usb_ctrlrequest *req)
     }
 }
 
-static void control_received()
+static void control_received(void)
 {
     static unsigned int tmp[2];
     tmp[0] = qh_array[0].setup_buffer[0];
@@ -593,7 +593,7 @@ static void control_received()
     handle_setup((struct usb_ctrlrequest *)tmp);
 }
 
-static void transfer_completed()
+static void transfer_completed(void)
 {
     unsigned int mask = REG_ENDPTCOMPLETE;
     REG_ENDPTCOMPLETE = mask;

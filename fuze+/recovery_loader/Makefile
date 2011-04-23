@@ -5,7 +5,7 @@ OC=arm-elf-eabi-objcopy
 ELF2SB=./elftosb
 ELF2SB_CMD=recovery.db
 ELF2SB_KEY=fuze+_key_file.txt
-CFLAGS=-Wall -O2 -std=gnu99 -nostdlib -ffreestanding -mcpu=arm926ej-s -fomit-frame-pointer
+CFLAGS=-W -Wall -Wundef -O -nostdlib -ffreestanding -Wstrict-prototypes -pipe -std=gnu99 -mcpu=arm926ej-s -fomit-frame-pointer -Wno-pointer-sign -Wno-override-init
 ASFLAGS=$(CFLAGS) -D__ASSEMBLER__
 OCFLAGS=
 LINKER_FILE=recovery.lds
