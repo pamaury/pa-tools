@@ -265,7 +265,7 @@ static void lcdif_send(bool data_mode, unsigned len, uint32_t *buf)
         else
             count = burst;
         HW_LCDIF_TRANSFER_COUNT = 0;
-        HW_LCDIF_TRANSFER_COUNT = 0x1000 | count;
+        HW_LCDIF_TRANSFER_COUNT = 0x10000 | count;
         __REG_CLR(HW_LCDIF_CTRL) = HW_LCDIF_CTRL__DATA_SELECT | HW_LCDIF_CTRL__RUN;
         if(data_mode)
             __REG_SET(HW_LCDIF_CTRL) = HW_LCDIF_CTRL__DATA_SELECT;
@@ -278,7 +278,7 @@ static void lcdif_send(bool data_mode, unsigned len, uint32_t *buf)
             HW_LCDIF_DATA = *buf++;
         }
         logf("lcdif_send: wait run\n");
-        //while(HW_LCDIF_CTRL & HW_LCDIF_CTRL__RUN);
+        while(HW_LCDIF_CTRL & HW_LCDIF_CTRL__RUN);
     }while(len > 0);
     logf("lcdif_send: xfer done\n");
     lcdif_enable_bus_master(true);
