@@ -55,10 +55,10 @@ static void setup_lcdif_parameters(void)
         (2 << HW_LCDIF_TIMING__CMD_HOLD_BP);
 }
 
-static void setup_lcd(bool use_gpio)
+static void setup_lcd(bool use_lcdif)
 {
     logf("setup_lcd\n");
-    if(!use_gpio)
+    if(use_lcdif)
     {
         imx233_set_pin_function(1, 25, PINCTRL_FUNCTION_GPIO); /* lcd_vsync */
         imx233_set_pin_function(1, 21, PINCTRL_FUNCTION_MAIN); /* lcd_cs */
@@ -139,10 +139,10 @@ static void setup_lcd_ter(bool use_gpio)
 
 static void lcdif_enable(bool enable)
 {
-   if(enable)
-        __REG_SET(HW_LCDIF_CTRL) = __BLOCK_CLKGATE;
-    else
+    if(enable)
         __REG_CLR(HW_LCDIF_CTRL) = __BLOCK_CLKGATE;
+    else
+        __REG_SET(HW_LCDIF_CTRL) = __BLOCK_CLKGATE;
     setup_lcd(enable);
 }
 
@@ -169,7 +169,7 @@ static void setup_lcd_subsystem(void)
     logf("setup_lcd_subsystem\n");
     g_lcdif_word_length = HW_LCDIF_CTRL__WORD_LENGTH_18_BIT;
     setup_lcdif_parameters();
-    lcdif_enable(false);
+    lcdif_enable(true);
     lcdif_enable_bus_master(true);
     lcdif_enable_irqs(HW_LCDIF__CUR_FRAME_DONE_IRQ);
     /* enable irq ? */
@@ -368,12 +368,12 @@ static void lcd_init_seq_7783(void)
     lcdif_send_cmd_data(0x39, 0x206);
     lcdif_send_cmd_data(0x3c, 0x206);
     lcdif_send_cmd_data(0x3d, 0x408);
-    lcdif_send_cmd_data(0x50, 0);
-    lcdif_send_cmd_data(0x51, 0xef);
-    lcdif_send_cmd_data(0x52, 0);
-    lcdif_send_cmd_data(0x53, 0x13f);
-    lcdif_send_cmd_data(0x20, 0);
-    lcdif_send_cmd_data(0x21, 0);
+    lcdif_send_cmd_data(0x50, 0); /* left X ? */ 
+    lcdif_send_cmd_data(0x51, 0xef); /* right X ? */
+    lcdif_send_cmd_data(0x52, 0); /* top Y ? */
+    lcdif_send_cmd_data(0x53, 0x13f); /* bottom Y ? */
+    lcdif_send_cmd_data(0x20, 0); /* left X ? */ 
+    lcdif_send_cmd_data(0x21, 0); /* top Y ? */
     lcdif_send_cmd_data(0x60, 0xa700);
     lcdif_send_cmd_data(0x61, 1);
     lcdif_send_cmd_data(0x90, 0x33);
@@ -424,7 +424,7 @@ void lcd_init(void)
 
 static void lcd_enable_7783(bool enable)
 {
-    if(enable)
+    if(!enable)
     {
         lcdif_send_cmd_data(7, 0x131);
         udelay(50);
@@ -459,16 +459,41 @@ static void lcd_enable_9325(bool enable)
 
 void lcd_enable(bool enable)
 {
-    if(!enable)
-        lcdif_enable(false);
+    if(enable)
+        lcdif_enable(true);
     switch(g_lcd_kind)
     {
         case LCD_KIND_7783: lcd_enable_7783(enable); break;
         case LCD_KIND_9325: lcd_enable_9325(enable); break;
         default: lcd_enable_7783(enable); break;
     }
-    if(enable)
-        lcdif_enable(true);
+    if(!enable)
+        lcdif_enable(false);
+}
+
+void lcdif_schedule_refresh(void *buffer, unsigned h_count, unsigned v_count)
+{
+    logf("refresh %dx%d\n", h_count, v_count);
+    lcdif_send_cmd_data(0x50, 0);
+    lcdif_send_cmd_data(0x51, h_count - 1);
+    lcdif_send_cmd_data(0x52, 0);
+    lcdif_send_cmd_data(0x53, v_count - 1);
+    lcdif_send_cmd_data(0x20, 0);
+    lcdif_send_cmd_data(0x21, 0);
+    lcdif_send_cmd_data(0x22, 0);
+    lcdif_wait_ready();
+    HW_LCDIF_CUR_BUF = (uint32_t)buffer;
+    if(g_lcdif_word_length != HW_LCDIF_CTRL__WORD_LENGTH_24_BIT)
+    {
+        logf("lcdif_schedule_refresh: don't handle word_length=%x\n", g_lcdif_word_length);
+        return;
+    }
+    HW_LCDIF_TRANSFER_COUNT = 0;
+    HW_LCDIF_TRANSFER_COUNT = (v_count << 16) | h_count;
+    __REG_CLR(HW_LCDIF_CTRL) = HW_LCDIF_CTRL__RUN;
+    __REG_SET(HW_LCDIF_CTRL) = HW_LCDIF_CTRL__DATA_SELECT;
+    __REG_SET(HW_LCDIF_CTRL) = HW_LCDIF_CTRL__RUN;
+    logf("refresh done\n");
 }
 
 void lcd_set_backlight(int steps)
