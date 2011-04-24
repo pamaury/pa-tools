@@ -67,5 +67,7 @@ enum lcd_kind_t
 };
 
 enum lcd_kind_t get_lcd_kind(void);
+void lcd_set_backlight(int steps);
+void lcd_enable(bool enable);
 
 #endif /* __lcd_h__ */

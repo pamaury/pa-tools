@@ -33,6 +33,14 @@ void main(void)
     usb_init();
     pinctrl_init();
     lcd_init();
+    lcd_set_backlight(100);
+    lcd_enable(false);
+    udelay(500000);
+    lcd_enable(true);
+    udelay(500000);
+    lcd_enable(false);
+    udelay(500000);
+    lcd_enable(true);
 
     while(1)
         usb_task();

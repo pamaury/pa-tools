@@ -137,7 +137,7 @@ static void setup_lcd_ter(bool use_gpio)
     }
 }
 
-static void lcd_enable(bool enable)
+static void lcdif_enable(bool enable)
 {
    if(enable)
         __REG_SET(HW_LCDIF_CTRL) = __BLOCK_CLKGATE;
@@ -169,7 +169,7 @@ static void setup_lcd_subsystem(void)
     logf("setup_lcd_subsystem\n");
     g_lcdif_word_length = HW_LCDIF_CTRL__WORD_LENGTH_18_BIT;
     setup_lcdif_parameters();
-    lcd_enable(false);
+    lcdif_enable(false);
     lcdif_enable_bus_master(true);
     lcdif_enable_irqs(HW_LCDIF__CUR_FRAME_DONE_IRQ);
     /* enable irq ? */
@@ -420,4 +420,64 @@ void lcd_init(void)
         default: lcd_init_seq_7783(); break;
     }
     logf("lcd initialized\n");
+}
+
+static void lcd_enable_7783(bool enable)
+{
+    if(enable)
+    {
+        lcdif_send_cmd_data(7, 0x131);
+        udelay(50);
+        lcdif_send_cmd_data(7, 0x20);
+        udelay(50);
+        lcdif_send_cmd_data(0x10, 0x82);
+        udelay(50);
+    }
+    else
+    {
+        lcdif_send_cmd_data(0x11, 5);
+        lcdif_send_cmd_data(0x10, 0x12b0);
+        udelay(50);
+        lcdif_send_cmd_data(7, 0x11);
+        udelay(50);
+        lcdif_send_cmd_data(0x12, 0x89);
+        udelay(50);
+        lcdif_send_cmd_data(0x13, 0x1d00);
+        udelay(50);
+        lcdif_send_cmd_data(0x29, 0x2f);
+        udelay(50);
+        lcdif_send_cmd_data(0x2b, 0xa);
+        lcdif_send_cmd_data(7, 0x133);
+        udelay(50);
+        lcdif_send_cmd_data(0x22, 0);
+    }
+}
+
+static void lcd_enable_9325(bool enable)
+{
+}
+
+void lcd_enable(bool enable)
+{
+    if(!enable)
+        lcdif_enable(false);
+    switch(g_lcd_kind)
+    {
+        case LCD_KIND_7783: lcd_enable_7783(enable); break;
+        case LCD_KIND_9325: lcd_enable_9325(enable); break;
+        default: lcd_enable_7783(enable); break;
+    }
+    if(enable)
+        lcdif_enable(true);
+}
+
+void lcd_set_backlight(int steps)
+{
+    imx233_set_gpio_output(1, 28, false);
+    udelay(600);
+    while(steps-- > 0)
+    {
+        imx233_set_gpio_output(1, 28, false);
+        imx233_set_gpio_output(1, 28, true);
+    }
 }
