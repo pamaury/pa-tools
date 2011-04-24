@@ -252,7 +252,6 @@ static void lcdif_send(bool data_mode, unsigned len, uint32_t *buf)
 
     do
     {
-        logf("lcdif_send: len=%d\n", len);
         unsigned burst = MIN(len, max_xfer_size);
         len -= burst;
         unsigned count = burst;
@@ -273,14 +272,11 @@ static void lcdif_send(bool data_mode, unsigned len, uint32_t *buf)
         burst = (burst + 3) / 4;
         while(burst-- > 0)
         {
-            logf("lcdif_send: wait fifo\n");
             while(HW_LCDIF_STAT & HW_LCDIF_STAT__LFIFO_FULL);
             HW_LCDIF_DATA = *buf++;
         }
-        logf("lcdif_send: wait run\n");
         while(HW_LCDIF_CTRL & HW_LCDIF_CTRL__RUN);
     }while(len > 0);
-    logf("lcdif_send: xfer done\n");
     lcdif_enable_bus_master(true);
     lcdif_enable_irqs(HW_LCDIF__CUR_FRAME_DONE_IRQ);
 }
@@ -315,17 +311,82 @@ static void lcdif_send_cmd_data(uint32_t cmd, uint32_t data)
         lcdif_send(true, 2, &data);
 }
 
-static void lcd_init_1(uint32_t data_out, uint32_t *data_in) __attribute__((noinline));
-
-static void lcd_init_1(uint32_t data_out, uint32_t *data_in)
+static void lcd_find_kind(uint32_t data_out, uint32_t *data_in)
 {
-    logf("lcd_init_1\n");
+    logf("lcd_find_kind\n");
     setup_lcd_ter(true);
     lcdif_write_read_single_gpio(encode_16_to_18(data_out), data_in);
     *data_in = decode_18_to_16(*data_in);
-    logf("  data_in: %x\n", *data_in);
     setup_lcd_ter(false);
     lcdif_send_cmd_data(0x22, 0);
+}
+
+static void setup_unk_pin(void)
+{
+    imx233_set_pin_function(1, 28, PINCTRL_FUNCTION_GPIO);
+    imx233_set_pin_drive_strength(1, 28, PINCTRL_DRIVE_8mA);
+    imx233_enable_gpio_output(1, 28, true);
+    imx233_set_gpio_output(1, 29, true);
+    udelay(600);
+}
+
+static void lcd_init_seq_7783(void)
+{
+    __REG_SET(HW_LCDIF_CTRL1) = HW_LCDIF_CTRL1__RESET;
+    udelay(50);
+    __REG_CLR(HW_LCDIF_CTRL1) = HW_LCDIF_CTRL1__RESET;
+    udelay(10);
+    __REG_SET(HW_LCDIF_CTRL1) = HW_LCDIF_CTRL1__RESET;
+    udelay(200);
+    lcdif_send_cmd_data(1, 0x100);
+    lcdif_send_cmd_data(2, 0x700);
+    lcdif_send_cmd_data(3, 0x1030);
+    lcdif_send_cmd_data(7, 0x121);
+    lcdif_send_cmd_data(8, 0x302);
+    lcdif_send_cmd_data(9, 0x200);
+    lcdif_send_cmd_data(0xa, 0);
+    lcdif_send_cmd_data(0x10, 0x790);
+    lcdif_send_cmd_data(0x11, 5);
+    lcdif_send_cmd_data(0x12, 0);
+    lcdif_send_cmd_data(0x13, 0);
+    udelay(100);
+    lcdif_send_cmd_data(0x10, 0x12b0);
+    udelay(100);
+    lcdif_send_cmd_data(0x11, 7);
+    udelay(100);
+    lcdif_send_cmd_data(0x12, 0x89);
+    lcdif_send_cmd_data(0x13, 0x1d00);
+    lcdif_send_cmd_data(0x29, 0x2f);
+    udelay(50);
+    lcdif_send_cmd_data(0x30, 0);
+    lcdif_send_cmd_data(0x31, 0x505);
+    lcdif_send_cmd_data(0x32, 0x205);
+    lcdif_send_cmd_data(0x35, 0x206);
+    lcdif_send_cmd_data(0x36, 0x408);
+    lcdif_send_cmd_data(0x37, 0);
+    lcdif_send_cmd_data(0x38, 0x504);
+    lcdif_send_cmd_data(0x39, 0x206);
+    lcdif_send_cmd_data(0x3c, 0x206);
+    lcdif_send_cmd_data(0x3d, 0x408);
+    lcdif_send_cmd_data(0x50, 0);
+    lcdif_send_cmd_data(0x51, 0xef);
+    lcdif_send_cmd_data(0x52, 0);
+    lcdif_send_cmd_data(0x53, 0x13f);
+    lcdif_send_cmd_data(0x20, 0);
+    lcdif_send_cmd_data(0x21, 0);
+    lcdif_send_cmd_data(0x60, 0xa700);
+    lcdif_send_cmd_data(0x61, 1);
+    lcdif_send_cmd_data(0x90, 0x33);
+    lcdif_send_cmd_data(0x2b, 0xa);
+    lcdif_send_cmd_data(9, 0);
+    lcdif_send_cmd_data(7, 0x133);
+    udelay(50);
+    lcdif_send_cmd_data(0x22, 0);
+}
+
+static void lcd_init_seq_9325(void)
+{
+    
 }
 
 void lcd_init(void)
@@ -337,15 +398,26 @@ void lcd_init(void)
     
     for(int i = 0; i < 10; i++)
     {
-        lcd_init_1(0, &kind);
+        lcd_find_kind(0, &kind);
         if(kind == LCD_KIND_7783 || kind == LCD_KIND_9325)
         {
             g_lcd_kind = kind;
             break;
         }
         else
+        {
+            logf("unknown lcd kind: %x\n", kind);
             g_lcd_kind = LCD_KIND_OTHER;
-        logf("bad kind: %d\n", g_lcd_kind);
+        }
     }
-    logf("final kind: %d\n", g_lcd_kind);
+    udelay(5);
+    logf("lcd kind: %x\n", g_lcd_kind);
+    setup_unk_pin();
+    switch(g_lcd_kind)
+    {
+        case LCD_KIND_7783: lcd_init_seq_7783(); break;
+        case LCD_KIND_9325: lcd_init_seq_9325(); break;
+        default: lcd_init_seq_7783(); break;
+    }
+    logf("lcd initialized\n");
 }
