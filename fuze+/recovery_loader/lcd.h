@@ -13,6 +13,7 @@
 #define HW_LCDIF_CTRL__WORD_LENGTH_BM       (3 << 8)
 #define HW_LCDIF_CTRL__LCD_DATABUS_WIDTH_18_BIT (2 << 10)
 #define HW_LCDIF_CTRL__LCDIF_MASTER         (1 << 5)
+#define HW_LCDIF_CTRL__DATA_FORMAT_16_BIT   (1 << 3)
 #define HW_LCDIF_CTRL__DATA_FORMAT_24_BIT   0x2
 #define HW_LCDIF_CTRL__RUN                  0x1
 #define HW_LCDIF_CTRL__DATA_SELECT          (1 << 16)

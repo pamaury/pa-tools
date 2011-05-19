@@ -471,6 +471,7 @@ void lcd_enable(bool enable)
         lcdif_enable(false);
 }
 
+#if 0
 void lcdif_schedule_refresh(void *buffer, unsigned h_count, unsigned v_count)
 {
     logf("refresh %dx%d\n", h_count, v_count);
@@ -495,6 +496,32 @@ void lcdif_schedule_refresh(void *buffer, unsigned h_count, unsigned v_count)
     __REG_SET(HW_LCDIF_CTRL) = HW_LCDIF_CTRL__RUN;
     logf("refresh done\n");
 }
+#else
+void lcdif_schedule_refresh(void *buffer, unsigned h_count, unsigned v_count)
+{
+    logf("refresh %dx%d\n", h_count, v_count);
+    lcdif_send_cmd_data(0x50, 0);
+    lcdif_send_cmd_data(0x51, h_count - 1);
+    lcdif_send_cmd_data(0x52, 0);
+    lcdif_send_cmd_data(0x53, v_count - 1);
+    lcdif_send_cmd_data(0x20, 0);
+    lcdif_send_cmd_data(0x21, 0);
+    lcdif_send_cmd_data(0x22, 0);
+    lcdif_wait_ready();
+    __REG_CLR(HW_LCDIF_CTRL) = HW_LCDIF_CTRL__WORD_LENGTH_BM;
+    __REG_CLR(HW_LCDIF_CTRL1) = HW_LCDIF_CTRL1__BYTE_PACKING_FORMAT_BM;
+    __REG_SET(HW_LCDIF_CTRL) = HW_LCDIF_CTRL__WORD_LENGTH_16_BIT | HW_LCDIF_CTRL__DATA_FORMAT_16_BIT;
+    __REG_SET(HW_LCDIF_CTRL1) = 0xf << HW_LCDIF_CTRL1__BYTE_PACKING_FORMAT_BP;
+    g_lcdif_word_length = HW_LCDIF_CTRL__WORD_LENGTH_16_BIT;
+    HW_LCDIF_CUR_BUF = (uint32_t)buffer;
+    HW_LCDIF_TRANSFER_COUNT = 0;
+    HW_LCDIF_TRANSFER_COUNT = (v_count << 16) | h_count;
+    __REG_CLR(HW_LCDIF_CTRL) = HW_LCDIF_CTRL__RUN;
+    __REG_SET(HW_LCDIF_CTRL) = HW_LCDIF_CTRL__DATA_SELECT;
+    __REG_SET(HW_LCDIF_CTRL) = HW_LCDIF_CTRL__RUN;
+    logf("refresh done\n");
+}
+#endif
 
 void lcd_set_backlight(int steps)
 {
