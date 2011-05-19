@@ -152,8 +152,10 @@ void console_newline()
 {
     g_console_x = g_console_lx;
     g_console_y += sysfont_height;
-    if(g_console_y > g_console_by)
+    if((g_console_y + sysfont_height) > g_console_by)
         g_console_y = g_console_ty;
+    print_str_xy("                                        ",
+        g_console_x, g_console_y, console_fcol(), console_bcol());
 }
 
 void print_str(const char *str)
@@ -906,8 +908,13 @@ void usb_screen()
             if(OUT_CSR1_REG & OUT_PKT_RDY)
             {
                 int size = usb_fifo_size_out(1);
+                /*
                 print_str_num("EP1 data: ", size);
+                print_str("  ");
+                print_num(download_address + size - (uint8_t *)&_ramstart);
+                print_str("    ");
                 console_newline();
+                */
                 
                 usb_fifo_read(1, ep1_data, size);
                 memcpy(download_address, ep1_data, size);
@@ -990,6 +997,9 @@ void usb_screen()
                 if(KEY_MENU())
                     break;
             }
+
+            /* move everything to delete the header */
+            memcpy(fw_addr, fw_addr + 8, download_address - fw_addr - 8);
 
             __asm volatile(
                 "bx    %0   \n"

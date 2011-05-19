@@ -82,7 +82,7 @@ void main_loop(libusb_device_handle *handle)
             write_endpoint=interface->endpoint[i].bEndpointAddress;
     }
     
-    const int READ_BUF_SIZE=512;
+    const int READ_BUF_SIZE=32;
     char buffer[READ_BUF_SIZE];
     int xfered;
     
@@ -90,7 +90,6 @@ void main_loop(libusb_device_handle *handle)
     printf("write endpoint: %#x\n",write_endpoint);
     
     sprintf(buffer,"HELLO FROM SERIAL_READER\n");
-    
     
     res=libusb_bulk_transfer(handle,write_endpoint,buffer,strlen(buffer),&xfered,0);
     if(res<0)
