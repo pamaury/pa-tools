@@ -5,6 +5,8 @@
 #include "usb_ch9.h"
 #include "sysfont.h"
 
+#define PAGE_SIZE     2048
+
 /* GPIOS:
  * Keys:
  *  Minus (-)  <=> GPG5 (low)
@@ -76,6 +78,13 @@ inline void put_pixel_xy(unsigned x, unsigned y, unsigned col)
 {
     if(col != TRANSPARENT)
         FRAME[y * SCREEN_WIDTH + x] = col;
+}
+
+void clear_screen_rect(int x, int y, int w, int h, uint16_t color)
+{
+    for(unsigned dy = 0; dy < h; dy++)
+        for(unsigned dx = 0; dx < w; dx++)
+            FRAME[(y + dy) * SCREEN_WIDTH + (x + dx)] = color;
 }
 
 unsigned print_char_xy(char c, unsigned x, unsigned y, unsigned fcol, unsigned bcol)
@@ -152,8 +161,10 @@ void console_newline()
 {
     g_console_x = g_console_lx;
     g_console_y += sysfont_height;
-    if(g_console_y > g_console_by)
+    if((g_console_y + sysfont_height) > g_console_by)
         g_console_y = g_console_ty;
+    clear_screen_rect(g_console_x, g_console_y, SCREEN_WIDTH - g_console_x,
+        sysfont_height, g_console_bcol);
 }
 
 void print_str(const char *str)
@@ -468,25 +479,772 @@ void gpio_screen()
     }
 }
 
+/********
+ * UART *
+ ********/
+
+/*
+ * UART configs:
+ * - config 1:
+ *   - UART: 1
+ *   - DRT: GPH6
+ *   - DSR: GPH7
+ * - config 2:
+ *   - UART: 2
+ *
+ */
+
+void uart_init()
+{
+    // GPH{4,5} as {T,R}XD[1]
+    GPHCON &= ~0xF00;
+    GPHCON |= 0xA00;
+    GPHUP |= 0x30;
+    GPJDAT &= ~0x100;
+    GPJDAT &= ~0x1000;
+    GPJDAT |= 0x400;
+    GPJDAT |= 1;
+}
+
 /*******
  * GPS *
  *******/
- 
-void gps_screen()
+
+#define CMD_READ                    0x30
+#define CMD_READID                  0x90        //  ReadID
+#define CMD_STATUS                  0x70        //  Status read
+#define CMD_RESET                   0xff        //  Reset
+
+//  Status bit pattern
+#define STATUS_READY                0x40        //  Ready
+#define STATUS_ERROR                0x01        //  Error
+
+#define NF_CMD(cmd)	    {NFCMD  = (cmd); }
+#define NF_ADDR(addr)	{NFADDR = (addr); }	
+#define NF_nFCE_L()	    {NFCONT &= ~(1<<1); }
+#define NF_nFCE_H()	    {NFCONT |= (1<<1); }
+#define NF_RSTECC()	    {NFCONT |= (1<<4); }
+#define NF_RDDATA() 	(NFDATA)
+#define NF_WRDATA(data) {NFDATA = (data); }
+#define NF_WAITRB()     {while(!(NFSTAT&(1<<0)));} 
+#define NF_CLEAR_RB()	{NFSTAT |= (1<<2); }
+#define NF_DETECT_RB()	{while(!(NFSTAT&(1<<2)));}
+#define NF_MECC_UnLock()	{NFCONT &= ~(1<<5);}
+#define NF_MECC_Lock()		{NFCONT |= (1<<5);}
+
+#define NF_CE_L()     NF_nFCE_L()
+#define NF_CE_H()     NF_nFCE_H()
+#define NF_DATA_R()   NFDATA
+#define NF_DATA_RH()  NFDATA_H
+#define NF_DATA_RB()  NFDATA_B
+
+void nand_reset()
+{                       
+    NF_CE_L();
+    NF_CLEAR_RB();
+    NF_CMD(CMD_RESET);  
+    NF_CE_H();          
+}
+
+void nand_read_id(uint8_t *resp)
+{
+    NF_CE_L();
+    NF_CLEAR_RB();
+    NF_CMD(CMD_READID);
+    NF_ADDR(0x00);
+    
+    NF_WAITRB();
+
+    for(int i = 0; i < 5; i++)
+        *resp++ = NF_DATA_RB();
+
+    NF_CE_H();
+}
+
+void nand_read(unsigned column, unsigned row, bool ecc, uint8_t *buf, unsigned size,
+    uint8_t (*data_ecc)[3])
+{
+    if(ecc)
+    {
+        NF_RSTECC();
+        NF_MECC_UnLock();
+    }
+    NF_nFCE_L();
+    NF_CLEAR_RB();
+    NF_CMD(0x00);
+    NF_ADDR(column & 0xff);
+    NF_ADDR(column >> 8);
+    NF_ADDR(row & 0xff);
+    NF_ADDR((row >> 8) & 0xff);
+    NF_ADDR((row >> 16) & 0xff);
+    NF_CMD(CMD_READ);
+
+    NF_WAITRB();
+
+    for(int i = 0; i < size; i++)
+        *buf++ = NF_DATA_RB();
+
+    if(ecc)
+    {
+        NF_MECC_Lock();
+        (*data_ecc)[0] = NFMECCSTAT0 & 0xff;
+        (*data_ecc)[1] = (NFMECCSTAT0 >> 8) & 0xff;
+        (*data_ecc)[2] = (NFMECCSTAT0 >> 16) & 0xff;
+    }
+}
+
+void nand_read_sector(unsigned page, unsigned sec, uint8_t *buf)
+{
+    uint8_t data_ecc[3];
+    nand_read(sec << 9, page, true, buf, 512, &data_ecc);
+    uint8_t flash_ecc[3];
+    nand_read(2048 + 8 + 16 * sec, page, false, flash_ecc, 3, NULL);
+
+    if(data_ecc[0] != flash_ecc[0] || data_ecc[1] != flash_ecc[1] ||
+            data_ecc[2] != flash_ecc[2])
+    {
+        print_str_num("Page ", page);
+        print_str_num(" Sector ", sec);
+        print_str(": ECC error");
+        console_newline();
+        print_num(data_ecc[0]);
+        print_str_num(" ", data_ecc[1]);
+        print_str_num(" ", data_ecc[2]);
+        print_str_num(" -- ", flash_ecc[0]);
+        print_str_num(" ", flash_ecc[1]);
+        print_str_num(" ", flash_ecc[2]);
+        console_newline();
+    }
+}
+
+void nand_read_page(unsigned page_num, uint8_t *buf)
+{
+    #if 0
+    NF_RSTECC();
+    NF_MECC_UnLock();
+    NF_nFCE_L();
+    NF_CLEAR_RB();
+    NF_CMD(0x00);
+    NF_ADDR(0x00);
+    NF_ADDR(0x00);
+    NF_ADDR(sec_num & 0xff);
+    NF_ADDR((sec_num >> 8) & 0xff);
+    NF_ADDR((sec_num >> 16) & 0xff);
+    NF_CMD(CMD_READ);
+
+    NF_WAITRB();
+
+    unsigned data_ecc[4][3];
+    for(int i = 0; i < 4; i++)
+    {
+        
+        for(int i = 0; i < 512; i++)
+            *buf++ = NF_DATA_RB();
+        data_ecc[i][0] = NFMECC0 & 0xff;
+        data_ecc[i][1] = (NFMECC0 >> 16) & 0xff;
+        data_ecc[i][2] = NFMECC1 & 0xff;
+    }
+
+    NF_MECC_Lock();
+
+    unsigned flash_ecc[4][3];
+    for(int i = 0; i < 4; i++)
+    {
+        /* skip 8 bytes */
+        for(int j = 0; j < 8; j++)
+            (void)NF_DATA_RB();
+        /* read ECC */
+        for(int j = 0; j < 3; j++)
+            flash_ecc[i][j] = NF_DATA_RB();
+        /* skip 5 bytes */
+        for(int j = 0; j < 5; j++)
+            (void)NF_DATA_RB();
+    }
+
+    NF_nFCE_H();
+
+    bool error = false;
+    for(int i = 0; i < 4; i++)
+        for(int j = 0; j < 3; j++)
+            if(flash_ecc[i][j] != data_ecc[i][j])
+                error = true;
+
+    if(error)
+    {
+        print_str("ECC error:");
+        console_newline();
+        for(int i = 0; i <  4; i++)
+        {
+            print_str_num("S", i);
+            for(int j = 0; j < 3; j++)
+                print_str_num(" ", flash_ecc[i][j]);
+            print_str(" --");
+            for(int j = 0; j < 3; j++)
+                print_str_num(" ", data_ecc[i][j]);
+            console_newline();
+        }
+    }
+    #else
+    nand_read_sector(page_num, 0, buf);
+    nand_read_sector(page_num, 1, buf + 512);
+    nand_read_sector(page_num, 2, buf + 1024);
+    nand_read_sector(page_num, 3, buf + 1536);
+    #endif
+}
+
+uint8_t nand_buffer[PAGE_SIZE];
+
+void nand_screen()
 {
     clear_screen(BLUE);
     setup_console(0, 0, SCREEN_HEIGHT, WHITE, BLUE);
-    print_str("GPS screen");
+    print_str("NAND screen");
+    console_newline();
+    print_str_num("NFCONF: ", NFCONF);
+    print_str_num(" NFCONT: ", NFCONT);
+    console_newline();
+
+    /* HCLK = 100Mhz
+     * tALE=tCLE >= 12ns
+     *
+     */
+    NFCONF = 0x1530;
+    NFCONT = 0x13;
+    NFSTAT = 0;
+    /* Read ID */
+    uint8_t id[5];
+    nand_read_id(id);
+    print_str_num("Maker: ", id[0]);
+    print_str_num(" Device: ", id[1]);
+    print_str_num(" 3rd: ", id[2]);
+    console_newline();
+    print_str_num("4th: ", id[3]);
+    print_str_num(" 5th: ", id[4]);
+    console_newline();
+    /* Read first sector */
+    nand_read_page(0, nand_buffer);
+    print_str("First page:");
+    console_newline();
+    for(int i = 0; i < 16; i++)
+    {
+        for(int j = 0; j < 12; j++)
+        {
+            uint8_t v = nand_buffer[i * 12 + j];
+            char str[4];
+            str[0] = (v >> 4);
+            if(str[0] >= 10) str[0] += 'A' - 10; else str[0] += '0';
+            str[1] = (v & 0xf);
+            if(str[1] >= 10) str[1] += 'A' - 10; else str[1] += '0';
+            str[2] = ' ';
+            str[3] = 0;
+            print_str(str);
+        }
+        console_newline();
+    }
+}
+
+/*******
+ * USB *
+ *******/
+
+#define EP0_PKT_LEN     8
+#define EP1_PKT_LEN     64
+
+uint8_t *g_send_data_ptr = NULL;
+unsigned g_send_data_size = 0;
+bool g_send_zpl = false;
+uint8_t ep1_data[EP1_PKT_LEN];
+uint8_t nand_usb_buffer[PAGE_SIZE];
+int g_nand_usb_buf_rem_len = 0;
+uint8_t *g_nand_usb_buf_ptr = NULL;
+uint32_t g_checksum_buf[2];
+bool g_verbose = true;
+
+static struct usb_device_descriptor device_descriptor=
+{
+    .bLength            = sizeof(struct usb_device_descriptor),
+    .bDescriptorType    = USB_DT_DEVICE,
+    .bcdUSB             = 0x0110,
+    .bDeviceClass       = USB_CLASS_PER_INTERFACE,
+    .bDeviceSubClass    = 0,
+    .bDeviceProtocol    = 0,
+    .bMaxPacketSize0    = EP0_PKT_LEN,
+    .idVendor           = 0x5345,
+    .idProduct          = 0x1234,
+    .bcdDevice          = 0x0100,
+    .iManufacturer      = 0,
+    .iProduct           = 0,
+    .iSerialNumber      = 0,
+    .bNumConfigurations = 1
+};
+
+#define USB_MAX_CURRENT     500
+
+struct
+{
+    struct usb_config_descriptor config_desc;
+    struct usb_interface_descriptor intf_desc;
+    struct usb_endpoint_descriptor ep_desc;
+} config_descriptor =
+{
+    .config_desc =
+    {
+        .bLength             = sizeof(struct usb_config_descriptor),
+        .bDescriptorType     = USB_DT_CONFIG,
+        .wTotalLength        = sizeof(config_descriptor),
+        .bNumInterfaces      = 1,
+        .bConfigurationValue = 1,
+        .iConfiguration      = 0,
+        .bmAttributes        = USB_CONFIG_ATT_ONE | USB_CONFIG_ATT_SELFPOWER,
+        .bMaxPower           = (USB_MAX_CURRENT + 1) / 2, /* In 2mA units */
+    },
+    .intf_desc =
+    {
+        .bLength            = sizeof(struct usb_interface_descriptor),
+        .bDescriptorType    = USB_DT_INTERFACE,
+        .bInterfaceNumber   = 0,
+        .bAlternateSetting  = 0,
+        .bNumEndpoints      = 1,
+        .bInterfaceClass    = USB_CLASS_VENDOR_SPEC,
+        .bInterfaceSubClass = 0,
+        .bInterfaceProtocol = 0,
+        .iInterface         = 0
+    },
+    .ep_desc =
+    {
+        .bLength          = sizeof(struct usb_endpoint_descriptor),
+        .bDescriptorType  = USB_DT_ENDPOINT,
+        .bEndpointAddress = 0x81,
+        .bmAttributes     = USB_ENDPOINT_XFER_BULK,
+        .wMaxPacketSize   = EP1_PKT_LEN,
+        .bInterval        = 0
+    }
+};
+
+void memcpy(void *dst, const void *src, unsigned size)
+{
+    while(size--)
+        *(uint8_t *)dst++ = *(uint8_t *)src++;
+}
+
+unsigned usb_fifo_size_out(int ep)
+{
+    INDEX_REG = ep;
+    return OUT_FIFO_CNT1_REG | (OUT_FIFO_CNT2_REG << 8);
+}
+
+unsigned usb_fifo_read(int ep, void *ptr, unsigned size)
+{
+    unsigned fifo_size = usb_fifo_size_out(ep);
+    dbg_print_str_num("**fifo read: ", fifo_size);
+    dbg_console_newline();
+    if(fifo_size > size)
+        size = fifo_size;
+    INDEX_REG = ep;
+    volatile uint8_t *reg = &EPx_FIFO(ep);
+    while(fifo_size--)
+        *(uint8_t *)ptr++ = *reg;
+    return size;
+}
+
+void usb_fifo_write(int ep, void *ptr, unsigned size)
+{
+    INDEX_REG = ep;
+    volatile uint8_t *reg = &EPx_FIFO(ep);
+    while(size--)
+        *reg = *(uint8_t *)ptr++;
+}
+
+void usb_flush_tx_fifo(int ep)
+{
+    INDEX_REG = ep;
+    IN_CSR1_REG |= FIFO_FLUSH;
+}
+
+void usb_stall_ep0()
+{
+    dbg_print_str("**stall");
+    dbg_console_newline();
+    INDEX_REG = 0;
+    EP0_CSR |= SEND_STALL | SRV_OUT_PKT_RDY;
+}
+
+void usb_stall_ep1()
+{
+    dbg_print_str("**stall ep1");
+    dbg_console_newline();
+    INDEX_REG = 1;
+    OUT_CSR1_REG |= SEND_STALL | OUT_PKT_RDY;
+}
+
+void continue_send_data()
+{
+    dbg_print_str("continue send");
+    dbg_console_newline();
+            
+    if(g_send_data_ptr == NULL)
+        return;
+
+    if(g_send_data_size == 0)
+    {
+        dbg_print_str("**send ZLP");
+        dbg_console_newline();
+        if(g_send_zpl)
+        {
+            INDEX_REG = 0;
+            EP0_CSR = IN_PKT_RDY | DATA_END;
+        }
+        g_send_data_ptr = NULL;
+        g_send_zpl = false;
+        return;
+    }
+
+    int i = MIN(g_send_data_size, EP0_PKT_LEN);
+    dbg_print_str_num("**fifo write: ", i);
+    dbg_console_newline();
+    g_send_data_size -= i;
+    while(i-- > 0)
+        EP0_FIFO = *g_send_data_ptr++;
+
+    INDEX_REG = 0;
+    if(g_send_data_size == 0)
+    {
+        EP0_CSR = IN_PKT_RDY | DATA_END;
+        g_send_data_ptr = NULL;
+    }
+    else
+        EP0_CSR = IN_PKT_RDY;
+}
+
+void send_data(void *data, unsigned size)
+{
+    g_send_data_ptr = data;
+    g_send_data_size = size;
+    g_send_zpl = (size % EP0_PKT_LEN) == 0;
+
+    continue_send_data();
+}
+
+void send_done_data()
+{
+    INDEX_REG = 0;
+    EP0_CSR = SRV_OUT_PKT_RDY;
+}
+
+void send_done_nodata()
+{
+    INDEX_REG = 0;
+    EP0_CSR = SRV_OUT_PKT_RDY | DATA_END;
+}
+
+void usb_get_desc(struct usb_ctrlrequest setup)
+{
+    void *desc = NULL;
+    unsigned desc_size = 0;
+    
+    switch(setup.wValue >> 8)
+    {
+        case USB_DT_DEVICE:
+            send_done_data();
+            print_str("device desc");
+            console_newline();
+            desc = &device_descriptor;
+            desc_size = sizeof(struct usb_device_descriptor);
+            break;
+        case USB_DT_CONFIG:
+            send_done_data();
+            print_str("config desc");
+            console_newline();
+            desc = &config_descriptor;
+            desc_size = config_descriptor.config_desc.wTotalLength;
+            break;
+        default:
+            break;
+    }
+
+    if(desc == NULL)
+        usb_stall_ep0();
+    else
+        send_data(desc, MIN(setup.wLength, desc_size));
+}
+
+void usb_get_status()
+{
+    usb_stall_ep0();
+}
+
+int usb_config_set = 0;
+
+void usb_handle_setup(struct usb_ctrlrequest setup)
+{
+    if(g_verbose)
+    {
+        print_str("setup: ");
+        print_str_num("bRequestType=", setup.bRequestType);
+        print_str_num(" bRequest=", setup.bRequest);
+        console_newline();
+        print_str_num("wValue=", setup.wValue);
+        print_str_num(" wIndex=", setup.wIndex);
+        print_str_num(" wLength=", setup.wLength);
+        console_newline();
+    }
+
+    if((setup.bRequestType & USB_TYPE_MASK) == USB_TYPE_STANDARD &&
+            (setup.bRequestType & USB_RECIP_MASK) == USB_RECIP_DEVICE)
+    {
+        switch(setup.bRequest)
+        {
+            case USB_REQ_GET_STATUS: return usb_get_status();
+            case USB_REQ_SET_ADDRESS:
+                print_str_num("set address: ", setup.wValue);
+                console_newline();
+                FUNC_ADDR_REG = setup.wValue;
+                FUNC_ADDR_REG |= ADDR_UPDATE;
+                send_done_nodata();
+                break;
+            case USB_REQ_GET_DESCRIPTOR: return usb_get_desc(setup);
+            case USB_REQ_SET_CONFIGURATION:
+                print_str_num("set config: ", setup.wValue);
+                console_newline();
+                usb_config_set = 1;
+                send_done_nodata();
+                break;
+            default:
+                usb_stall_ep0();
+        }
+    }
+    else if(setup.bRequestType == (USB_DIR_OUT | USB_TYPE_VENDOR | USB_RECIP_DEVICE) &&
+            setup.bRequest == 0xf1)
+    {
+        print_str_num("Verbose set: ", setup.wValue);
+        console_newline();
+        send_done_nodata();
+        g_verbose = setup.wValue;
+    }
+    else if(setup.bRequestType == (USB_DIR_OUT | USB_TYPE_VENDOR | USB_RECIP_DEVICE) &&
+            setup.bRequest == 0x2e)
+    {
+        if(g_verbose)
+        {
+            print_str_num("Read page: ", setup.wValue);
+            console_newline();
+        }
+        send_done_nodata();
+
+        nand_read_page(setup.wValue, nand_usb_buffer);
+        g_nand_usb_buf_rem_len = PAGE_SIZE;
+        g_nand_usb_buf_ptr = nand_usb_buffer;
+        g_checksum_buf[0] = 0;
+        g_checksum_buf[1] = 0;
+        uint32_t *tmp_ptr = (uint32_t *)nand_usb_buffer;
+        for(int i = 0; i < PAGE_SIZE / 4; i++)
+        {
+            g_checksum_buf[0] += tmp_ptr[i];
+            g_checksum_buf[1] ^= tmp_ptr[i];
+        }
+    }
+    else if(setup.bRequestType == (USB_DIR_IN | USB_TYPE_VENDOR | USB_RECIP_DEVICE) &&
+            setup.bRequest == 0x2f)
+    {
+        if(g_verbose)
+        {
+            print_str_num("Read checksums: ", g_checksum_buf[0]);
+            print_str_num(" ", g_checksum_buf[1]);
+            console_newline();
+        }
+        send_done_data();
+        send_data(g_checksum_buf, MIN(8, setup.wLength));
+    }
+    else if(setup.bRequestType == (USB_DIR_IN | USB_TYPE_VENDOR | USB_RECIP_DEVICE) &&
+            setup.bRequest == 0x2d)
+    {
+        if(g_verbose)
+        {
+            print_str("Transfer page");
+            console_newline();
+        }
+        send_done_data();
+        send_data(nand_usb_buffer, MIN(setup.wLength, PAGE_SIZE));
+    }
+    else
+    {
+        usb_stall_ep0();
+    }
+}
+
+void usb_bus_reset()
+{
+    g_send_data_ptr = NULL;
+    g_send_data_size = 0;
+    g_send_zpl = false;
+
+    FUNC_ADDR_REG = 0;
+
+    /* EP 0 */
+    INDEX_REG = 0;
+    MAXP_REG = EP0_PKT_LEN >> 3;
+    INDEX_REG = 0;
+    EP0_CSR |= SRV_OUT_PKT_RDY | SETUP_END;
+    /* EP 1 */
+    INDEX_REG = 1;
+    MAXP_REG = EP1_PKT_LEN >> 3;
+    INDEX_REG = 1;
+    IN_CSR1_REG = 0;
+    INDEX_REG = 1;
+    IN_CSR2_REG = MODE_IN;
+}
+
+void usb_init()
+{
+    GPGUP |= 0x100;
+    GPGCON &= ~0x30000;
+    GPGUP |= 2;
+    GPGCON &= ~0xC;
+    GPJDAT &= ~0x200;
+}
+
+void usb_power_on()
+{
+    CLKCON |= CLKCON_USBD;
+    MISCCR &= ~0x3008;
+    /* fixme: why does the OF fiddle with non-existent pins ? */
+    GPBCON &= ~0xC0000000;
+    GPBCON |= 0x40000000;
+    GPBUP &= ~0x8000;
+    GPBDAT |= 0x8000;
+}
+
+void usb_connect()
+{
+    GPJDAT |= 0x200;
+}
+
+void usb_disconnect()
+{
+    GPJDAT &= ~0x200;
+}
+
+void usb_power_off()
+{
+    CLKCON &= ~CLKCON_USBD;
+    MISCCR |= 0x3000;
+    /* fixme: why does the OF fiddle with non-existent pins ? */
+    GPBCON &= ~0xC0000000;
+    GPBCON |= 0x40000000;
+    GPBUP |= 0x8000;
+    GPBDAT &= ~0x8000;
+}
+
+void usb_screen()
+{
+    usb_init();
+    
+    while(1)
+    {
+        uint16_t fcol = YELLOW;
+        uint16_t bcol = BLUE;
+        
+        clear_screen(bcol);
+        print_str_xy("<Rockbox USB mode>", 70, 10, fcol, TRANSPARENT);
+        setup_console(10, 20, SCREEN_HEIGHT, fcol, bcol);
+        
+        usb_config_set = 0;
+
+        usb_power_on();
+
+        PWR_REG = 0;
+        EP_INT_REG = EP0_INTERRUPT | EP1_INTERRUPT;
+        USB_INT_REG = RESET_INT;
+        EP_INT_EN_REG = EP0_INTERRUPT | EP1_INTERRUPT;
+        USB_INT_EN_REG = RESET_INT;
+
+        usb_connect();
+        
+        while(1)
+        {
+            if(USB_INT_REG & RESET_INT)
+            {
+                print_str("reset interrupt");
+                console_newline();
+
+                usb_bus_reset();
+
+                USB_INT_REG = RESET_INT;
+            }
+            else if(EP_INT_REG & EP0_INTERRUPT)
+            {
+                EP_INT_REG = EP0_INTERRUPT;
+                
+                //print_str_num("EP0 interrupt: ", EP0_CSR);
+                //console_newline();
+                INDEX_REG = 0;
+                unsigned long ep0_csr = EP0_CSR;
+
+                if(ep0_csr & SETUP_END)
+                {
+                    g_send_data_ptr = NULL;
+                    //print_str("<<setup end>>");
+                    //console_newline();
+                    INDEX_REG = 0;
+                    EP0_CSR = SRV_SETUP_END; 
+                }
+                if(!(ep0_csr & IN_PKT_RDY) && g_send_data_ptr != NULL)
+                {
+                    //print_str("<<continue send>>");
+                    //console_newline();
+                    continue_send_data();
+                }
+                if(ep0_csr & OUT_PKT_RDY)
+                {
+                    //print_str("<<setup packet>>");
+                    //console_newline();
+                    struct usb_ctrlrequest setup;
+                    if(usb_fifo_read(0, &setup, sizeof(struct usb_ctrlrequest)) == sizeof(struct usb_ctrlrequest))
+                        usb_handle_setup(setup);
+                }
+                if(ep0_csr & SENT_STALL)
+                {
+                    print_str("**ack stall");
+                    INDEX_REG = 0;
+                    console_newline();
+                    EP0_CSR &= ~SEND_STALL;
+                }
+            }
+            else if(!EVT_USB())
+                break;
+
+            INDEX_REG = 1;
+            if(usb_config_set && !(IN_CSR1_REG & IN_PKT_RDY_EPx) &&
+                    g_nand_usb_buf_rem_len > 0)
+            {
+                int size = MIN(g_nand_usb_buf_rem_len, EP1_PKT_LEN);
+                usb_fifo_write(1, g_nand_usb_buf_ptr, size);
+                g_nand_usb_buf_ptr += size;
+                g_nand_usb_buf_rem_len -= size;
+
+                INDEX_REG = 1;
+                IN_CSR1_REG |= IN_PKT_RDY_EPx;
+            }
+        }
+
+        usb_disconnect();
+        usb_power_off();
+
+        print_str("Disconnect");
+        console_newline();
+
+        while(!KEY_POWER());
+    }
 }
 
 void main()
 {
     /* Power down useless peripherals */
-    CLKCON &= ~(CLKCON_NAND | CLKCON_USBH | CLKCON_USBD | CLKCON_SDI |
+    CLKCON &= ~(CLKCON_USBH | CLKCON_USBD | CLKCON_SDI |
                 CLKCON_UART0 | CLKCON_UART1 | CLKCON_UART2 |
                 CLKCON_I2C | CLKCON_I2S | CLKCON_SPI | CLKCON_CAM |
                 CLKCON_AC97);
-
+    CLKCON |= CLKCON_NAND;
     init_clocks();
     /* Without this, SD detection doesn't work with GPF7,
      * but on the other hand GPF6 seems to do the job.
@@ -495,7 +1253,7 @@ void main()
     init_display();
 
     gpio_screen();
-    gps_screen();
+    usb_screen();
     
     while(1);
 }

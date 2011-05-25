@@ -71,6 +71,10 @@
 #define SRV_OUT_PKT_RDY 64
 #define SRV_SETUP_END  128
 
+/* IN_CSR1_REG */
+#define IN_PKT_RDY_EPx  1
+#define FIFO_FLUSH      (1 << 3)
+
 /* IN_CSR2_REG */
 #define MODE_IN         (1 << 5)
 

@@ -289,10 +289,12 @@
 #define NFCMD (*(volatile unsigned long *)0x4E000008) /* NAND flash command */
 #define NFADDR (*(volatile unsigned long *)0x4E00000C) /* NAND flash address */
 #define NFDATA (*(volatile unsigned long *)0x4E000010) /* NAND flash data */
+#define NFDATA_H (*(volatile unsigned short *)0x4E000010) /* NAND flash data */
+#define NFDATA_B (*(volatile unsigned char *)0x4E000010) /* NAND flash data */
 #define NFMECC0 (*(volatile unsigned long *)0x4E000014) /* NAND flash main area ECC0/1 */
 #define NFMECC1 (*(volatile unsigned long *)0x4E000018) /* NAND flash main area ECC2/3 */
 #define NFSECC (*(volatile unsigned long *)0x4E00001C) /* NAND flash spare area ECC */
-#define NFSTAT (*(volatile unsigned long *)0x4E000020) /* NAND flash operation status */
+#define NFSTAT (*(volatile unsigned char *)0x4E000020) /* NAND flash operation status */
 #define NFESTAT0 (*(volatile unsigned long *)0x4E000024) /* NAND flash ECC status for I/O[7:0] */
 #define NFESTAT1 (*(volatile unsigned long *)0x4E000028) /* NAND flash ECC status for I/O[15:8] */
 #define NFMECCSTAT0 (*(volatile unsigned long *)0x4E00002C) /* NAND flash main area ECC0 status */
