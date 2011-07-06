@@ -172,6 +172,30 @@ void print_str(const char *str)
     console_skip(print_str_xy(str, console_params()));
 }
 
+void print_char(char c)
+{
+    console_skip(print_char_xy(c, console_params()));
+}
+
+void print_str_intelligent(const char *str)
+{
+    while(*str)
+    {
+        char c = *str++;
+        if(c == '\r')
+            console_newline();
+        else if(c == '\n')
+            ;
+        else
+        {
+            int nx = g_console_x + sysfont_width;
+            if(nx > SCREEN_WIDTH)
+                console_newline();
+            print_char(c);
+        }
+    }
+}
+
 void print_num(uint32_t n)
 {
     console_skip(print_num_xy(n, console_params()));
@@ -276,9 +300,9 @@ void init_clocks()
      * input: 16.9344MHz
      * mpll: 399.65 MHz ~ 400Mhz (for core)
      * upll: 47.98 MHz ~ 48Mhz (for USB)
-     * pclk: hclk / 2
-     * hclk: fclk / 4
-     * fclk: mpll */
+     * fclk: mpll ~ 400MHz
+     * hclk: fclk / 4 ~ 100MHz
+     * pclk: hclk / 2 ~ 50MHz */
     CLKDIVN = 0x5;
     arm_clock_select();
     LOCKTIME = 0xffffffff;
@@ -494,16 +518,121 @@ void gpio_screen()
  *
  */
 
-void uart_init()
+void uart1_init()
 {
     // GPH{4,5} as {T,R}XD[1]
     GPHCON &= ~0xF00;
     GPHCON |= 0xA00;
     GPHUP |= 0x30;
-    GPJDAT &= ~0x100;
-    GPJDAT &= ~0x1000;
-    GPJDAT |= 0x400;
-    GPJDAT |= 1;
+    
+    //UCON1 = 0x245; // int/polling rx/tx mode, rx timeout, UEXTCLOCK
+    UCON1 = 0x45; // int/polling rx/tx mode, rx timeout, PCLK
+    UFCON1 = 0x1; // FIFO enable: 16 bytes RX
+    UMCON1 = 0;
+    ULCON1 = 3; // 8-bits, one stop bit, no parity, normal mode
+    UTRSTAT1 = 0;
+    UERSTAT1 = 0;
+    UFSTAT1 = 0;
+    UMSTAT1 = 0;
+    // PCLK ~ 50MHz, we want 9600bps so UBRDIV = 50000000 / (9600 x 16) - 1
+    /* |   BPS  | DIV
+     * | 4800   | 650
+     * | 9600   | 324
+     * | 14400  | 216
+     * | 19200  | 161
+     * | 38400  | 80
+     * | 57600  | 53
+     * | 115200 | 26
+     */
+    UBRDIV1 = 650;
+}
+
+void gps_init()
+{
+}
+
+void gps_enable(bool enable)
+{
+    if(enable)
+    {
+        GPJDAT &= ~0x100;
+        GPJDAT &= ~0x1000;
+        GPJDAT |= 0x400;
+        GPJDAT |= 1;
+        GPJDAT |= 0x80;
+
+        GPJDAT &= ~1;
+        GPJDAT &= ~0x1000;
+        wait(260);
+        GPJDAT |= 0x1000;
+        
+        GPJDAT |= 0x80;
+    }
+    else
+    {
+        GPJDAT &= ~0x80;
+        GPJDAT |= 1;
+        GPJDAT &= ~0x1000;
+    }
+}
+
+void uart2_init()
+{
+    // GPH{5,6} as {T,R}XD[2]
+    GPHCON &= ~0xF000;
+    GPHUP |= 0xC0;
+    GPHCON |= 0xA000;
+    GPJDAT &= ~0x80;
+    GPHUP |= 0x80;
+    GPJCON |= 0x4000;
+}
+
+int uart1_receive(unsigned char *buf, int size)
+{
+    int read = 0;
+    if(UERSTAT1)
+        UFCON1 |= 1; /* flush fifo */
+    while((UFSTAT1 & 0x3f) > 0)
+    {
+        if(read++ < size)
+            *buf++ = URXH1;
+        else
+            (void) URXH1;
+    }
+    return MIN(read, size);
+}
+
+unsigned char gps_buffer[10000];
+
+void gps_screen()
+{
+    gps_init();
+    while(1)
+    {
+        uint16_t fcol = YELLOW;
+        uint16_t bcol = BLUE;
+        
+        clear_screen(bcol);
+        print_str_xy("<GPS screen>", 70, 10, fcol, TRANSPARENT);
+        setup_console(10, 20, SCREEN_HEIGHT, fcol, bcol);
+        gps_enable(true);
+        uart1_init();
+        while(1)
+        {
+            int gps_size = uart1_receive(gps_buffer, sizeof(gps_buffer) - 1);
+            gps_buffer[gps_size] = 0;
+
+            print_str_intelligent(gps_buffer);
+
+            if(KEY_MENU())
+                break;
+        }
+        //gps_enable(false);
+        console_newline();
+        print_str("STOP");
+        while(!KEY_POWER())
+            ;
+    }
 }
 
 /*******
@@ -1241,10 +1370,10 @@ void main()
 {
     /* Power down useless peripherals */
     CLKCON &= ~(CLKCON_USBH | CLKCON_USBD | CLKCON_SDI |
-                CLKCON_UART0 | CLKCON_UART1 | CLKCON_UART2 |
+                CLKCON_UART0 | CLKCON_UART2 |
                 CLKCON_I2C | CLKCON_I2S | CLKCON_SPI | CLKCON_CAM |
                 CLKCON_AC97);
-    CLKCON |= CLKCON_NAND;
+    CLKCON |= CLKCON_NAND | CLKCON_UART1;
     init_clocks();
     /* Without this, SD detection doesn't work with GPF7,
      * but on the other hand GPF6 seems to do the job.
@@ -1253,7 +1382,8 @@ void main()
     init_display();
 
     gpio_screen();
-    usb_screen();
+    //usb_screen();
+    gps_screen();
     
     while(1);
 }

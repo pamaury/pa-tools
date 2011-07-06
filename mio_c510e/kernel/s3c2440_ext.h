@@ -121,5 +121,12 @@
 /* ADCDAT0 */
 #define XPDATA_bitm     0x3ff
 
+/********
+ * UART *
+ ********/
+
+/* UMCON */
+#define REQUEST_TO_SEND (1 << 0)
+
 
 #endif /* __S3C2440_EXT_H__ */
