@@ -35,8 +35,8 @@ recovery.elf: $(OBJ)
 
 recovery.sb: recovery.elf
 	$(ELF2SB) $(ELF2SB_CMD) $(ELF2SB_KEY) -o $@
-	cp $@ recovery-hack.sb
-	$(DD) if=hdr.bin conv=notrunc of=recovery-hack.sb
+#	cp $@ recovery-hack.sb
+#	$(DD) if=hdr.bin conv=notrunc of=recovery-hack.sb
 
 clean:
 	rm -rf $(OBJ)
