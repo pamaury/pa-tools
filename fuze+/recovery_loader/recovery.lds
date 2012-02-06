@@ -49,6 +49,12 @@ SECTIONS
         . = ALIGN(0x4);
     } > SDRAM
 
+    .symtab :
+    {
+        KEEP(*(.symtab*));
+        *(.symtab*)
+    } > SDRAM
+
     /DISCARD/ :
     {
         *(.eh_frame)

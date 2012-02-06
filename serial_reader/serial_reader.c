@@ -56,7 +56,7 @@ void main_loop(libusb_device_handle *handle)
     }
     
     printf("serial interface: %d\n",serial_interface);
-    struct libusb_interface_descriptor *interface=&config->interface[serial_interface].altsetting[0];
+    const struct libusb_interface_descriptor *interface=&config->interface[serial_interface].altsetting[0];
     
     res=libusb_claim_interface(handle,serial_interface);
     if(res!=0)
@@ -91,7 +91,7 @@ void main_loop(libusb_device_handle *handle)
     
     sprintf(buffer,"HELLO FROM SERIAL_READER\n");
     
-    res=libusb_bulk_transfer(handle,write_endpoint,buffer,strlen(buffer),&xfered,0);
+    res=libusb_bulk_transfer(handle,write_endpoint,(void *)buffer,strlen(buffer),&xfered,0);
     if(res<0)
         printf("write xfer error: %d\n",res);
     else
@@ -99,7 +99,7 @@ void main_loop(libusb_device_handle *handle)
     
     while(1)
     {
-        res=libusb_bulk_transfer(handle,read_endpoint,buffer,/*READ_BUF_SIZE*/32,&xfered,0);
+        res=libusb_bulk_transfer(handle,read_endpoint,(void *)buffer,/*READ_BUF_SIZE*/32,&xfered,0);
         if(res<0)
         {
             printf("xfer error: %d\n",res);
@@ -108,7 +108,7 @@ void main_loop(libusb_device_handle *handle)
         }
         /*
         else
-            printf("xfered: %d\n",xfered);
+            printf("[xfered: %d]\n",xfered);
         */
         buffer[xfered]=0;
         printf("%s",buffer);
@@ -124,7 +124,8 @@ bool is_sansa(libusb_device *dev)
     int res=libusb_get_device_descriptor(dev,&dev_desc);
     assert(res==0);
     
-    return dev_desc.idVendor==0x0781 && (dev_desc.idProduct==0x7421 || dev_desc.idProduct==0x74d1);
+    return dev_desc.idVendor==0x0781 && (dev_desc.idProduct==0x7421
+        || dev_desc.idProduct==0x74d1 || dev_desc.idProduct==0x74e1);
 }
 
 int main(int argc,char **argv)

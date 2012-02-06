@@ -1,0 +1,19 @@
+sources
+{
+    recovery = "recovery.elf";
+}
+
+section(0)
+{
+    load recovery;
+    call recovery(1);
+    jump recovery(0);
+}
+
+section('mlc_')
+{
+}
+
+section('mmc_')
+{
+}

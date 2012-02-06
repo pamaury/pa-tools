@@ -1366,6 +1366,21 @@ void usb_screen()
     }
 }
 
+void mem_screen(void)
+{
+    uint16_t fcol = YELLOW;
+    uint16_t bcol = BLUE;
+    
+    clear_screen(bcol);
+    print_str_xy("<MEM Setup>", 70, 10, fcol, TRANSPARENT);
+    setup_console(10, 20, SCREEN_HEIGHT, fcol, bcol);
+    print_str_num("GPACON: ", GPACON);
+    console_newline();
+    print_str_num("MISCCR: ", MISCCR);
+
+    while(!KEY_POWER());
+}
+
 void main()
 {
     /* Power down useless peripherals */
@@ -1381,9 +1396,10 @@ void main()
     GPFDAT = 0x60; 
     init_display();
 
-    gpio_screen();
+    mem_screen();
+    //gpio_screen();
     //usb_screen();
-    gps_screen();
+    //gps_screen();
     
     while(1);
 }
