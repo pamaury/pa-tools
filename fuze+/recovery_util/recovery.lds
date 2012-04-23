@@ -15,11 +15,11 @@ SECTIONS
         *(.text*)
         *(.data*)
         *(.rodata*)
+        *(.bss*)
     } > OCRAM
 
     .ocbss :
     {
-        *(.bss*)
         . = ALIGN(0x4);
         stackbegin = .;
         . += 0x100;
@@ -27,18 +27,6 @@ SECTIONS
         . = ALIGN(4096);
         buffer = .;
         . += 0x300;
-    } > OCRAM
-
-    .symtab :
-    {
-        KEEP(*(.symtab*));
-        *(.symtab*)
-    } > OCRAM
-
-    .strtab :
-    {
-        KEEP(*(.strtab*));
-        *(.strtab*)
     } > OCRAM
 
     /DISCARD/ :

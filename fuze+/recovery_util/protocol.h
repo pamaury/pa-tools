@@ -26,9 +26,10 @@ struct usb_cmd_hdr_t
 #define CMD_OTP     0x01
 #define CMD_SSP     0x02
 #define CMD_LRADC   0x03
+#define CMD_I2C     0x04
 
 #define FLAGS_READ  (1 << 0)
-#define FLAGS_WRITE (1 << 1) 
+#define FLAGS_WRITE (1 << 1)
 
 struct usb_cmd_mem_t
 {
@@ -65,9 +66,9 @@ struct usb_resp_ssp_t
     uint32_t status;
     uint32_t ctrl1;
     uint32_t resp[4];
-    uint8_t data[0];
     uint32_t length;
-};
+    uint8_t data[0];
+} __attribute__((packed));
 
 #define FLAGS_LRADC_DIVIDE_BY_2 (1 << 2)
 #define FLAGS_LRADC_ACCUMULATE  (1 << 3)
@@ -91,11 +92,52 @@ struct usb_cmd_lradc_t
     struct usb_cmd_hdr_t hdr;
     uint8_t hw_chan;
     uint8_t num_samples;
-};
+} __attribute__((packed));
 
 struct usb_resp_lradc_t
 {
     uint32_t value;
-};
+} __attribute__((packed));
+
+#define FLAGS_I2C_GENERIC   (1 << 2)
+#define FLAGS_I2C_POKE      (1 << 3)
+
+struct usb_cmd_i2c_poke_t
+{
+    struct usb_cmd_hdr_t hdr;
+    uint8_t dev_addr;
+} __attribute__((packed));
+
+struct usb_resp_i2c_poke_t
+{
+    uint32_t ctrl1;
+    uint32_t status;
+} __attribute__((packed));
+
+#define FLAGS_I2C_STAGE_START   (1 << 0)
+#define FLAGS_I2C_STAGE_STOP    (1 << 1)
+#define FLAGS_I2C_STAGE_SEND    (1 << 2)
+
+struct usb_cmd_i2c_stage_t
+{
+    uint8_t flags;
+    uint16_t length;
+} __attribute__((packed));
+
+struct usb_cmd_i2c_generic_t
+{
+    struct usb_cmd_hdr_t hdr;
+    uint8_t nr_stages;
+    struct usb_cmd_i2c_stage_t stages[0];
+    uint8_t data[0];
+} __attribute__((packed));
+
+struct usb_resp_i2c_generic_t
+{
+    uint32_t ctrl1;
+    uint32_t status;
+    uint32_t length;
+    uint8_t data[0];
+} __attribute__((packed));
 
 #endif /* __PROTOCOL__ */

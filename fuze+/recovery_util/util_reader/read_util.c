@@ -20,6 +20,9 @@ void usage(void)
     printf("  otp_read <reg> <ofile>\n");
     printf("  ssp_cmd <ssp> read|write|nodata resp|noresp|longresp <cmd> <arg> <iofile>\n");
     printf("  lradc_read <hw chan> <div by 2> <acc> <num samples> <iofile>\n");
+    printf("  i2c_poke <dev>\n");
+    printf("  i2c_poke_generic <dev>\n");
+    printf("  i2c_eeprom_read <dev> <addr> <length> <iofile>\n");
     printf("If <ofile> is - then the output is pretty printed on stdout\n");
 }
 
@@ -154,10 +157,35 @@ void mem_write32(libusb_device_handle *handle, uint8_t int_ep, int argc, char **
 
 void otp_read(libusb_device_handle *handle, uint8_t int_ep, int argc, char **argv)
 {
-    (void) handle;
-    (void) int_ep;
-    (void) argc;
-    (void) argv;
+    if(argc != 2)
+        return usage();
+    char *end;
+    unsigned long reg = strtoul(argv[0], &end, 0);
+    if(*end != 0)
+        return_fatal("Invalid register\n");
+    printf("Reading OTP register %u, writing to %s\n", reg, argv[2]);
+
+    open_wrapper(argv[1]);
+
+    uint8_t buffer[1024];
+    int recv_size, ret;
+
+    struct usb_cmd_read_otp_t cmd;
+    cmd.hdr.cmd = CMD_OTP;
+    cmd.hdr.flags = FLAGS_READ;
+    cmd.reg = reg;
+
+    ret = libusb_control_transfer(handle,
+                                    LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_RECIPIENT_DEVICE,
+                                    USB_CMD_WRAPPED, 0, 0, (void *)&cmd, sizeof(cmd), 1000);
+    if(ret < 0)
+        return_fatal("transfer error at control stage\n");
+
+    ret = libusb_interrupt_transfer(handle, int_ep, buffer, sizeof(buffer), &recv_size, 1000);
+    if(ret < 0)
+        return_fatal("transfer error at receive stage\n");
+    write_wrapper(buffer, recv_size);
+    close_wrapper();
 }
 
 void ssp_cmd(libusb_device_handle *handle, uint8_t int_ep, int argc, char **argv)
@@ -281,6 +309,149 @@ void lradc_read(libusb_device_handle *handle, uint8_t int_ep, int argc, char **a
     close_wrapper();
 }
 
+void i2c_poke(libusb_device_handle *handle, uint8_t int_ep, int argc, char **argv)
+{
+    if(argc != 1)
+        return usage();
+    struct usb_cmd_i2c_poke_t i2c;
+    memset(&i2c, 0, sizeof(i2c));
+
+    char *end;
+    long dummy = strtol(argv[0], &end, 0);
+    if(*end != 0 || dummy < 0 || dummy > 255)
+        return_fatal("Invalid dev_addr choice\n");
+    i2c.dev_addr = dummy;
+
+    i2c.hdr.cmd = CMD_I2C;
+    i2c.hdr.flags |= FLAGS_I2C_POKE;
+
+    open_wrapper(argv[4]);
+
+    int ret = libusb_control_transfer(handle,
+                                  LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_RECIPIENT_DEVICE,
+                                  USB_CMD_WRAPPED, 0, 0, (void *)&i2c, sizeof(i2c), 1000);
+    if(ret < 0)
+        return_fatal("transfer error at control stage\n");
+
+    struct usb_resp_i2c_poke_t resp;
+    int recv_size;
+    ret = libusb_interrupt_transfer(handle, int_ep, (void *)&resp, sizeof(resp), &recv_size, 1000);
+    if(ret < 0)
+        return_fatal("transfer error at first receive stage\n");
+    write_wrapper(&resp, recv_size);
+    close_wrapper();
+}
+
+void i2c_poke_generic(libusb_device_handle *handle, uint8_t int_ep, int argc, char **argv)
+{
+    if(argc != 1)
+        return usage();
+    struct
+    {
+        struct usb_cmd_i2c_generic_t i2c;
+        struct usb_cmd_i2c_stage_t stage;
+        uint8_t dev_addr;
+    }__attribute__((packed)) i2c;
+    memset(&i2c, 0, sizeof(i2c));
+
+    char *end;
+    long dummy = strtol(argv[0], &end, 0);
+    if(*end != 0 || dummy < 0 || dummy > 255)
+        return_fatal("Invalid dev_addr choice\n");
+    i2c.dev_addr = dummy;
+
+    i2c.i2c.hdr.cmd = CMD_I2C;
+    i2c.i2c.hdr.flags |= FLAGS_I2C_GENERIC;
+    i2c.i2c.nr_stages = 1;
+    i2c.stage.flags = FLAGS_I2C_STAGE_START | FLAGS_I2C_STAGE_STOP | FLAGS_I2C_STAGE_SEND;
+    i2c.stage.length = 1;
+
+    open_wrapper("-");
+
+    int ret = libusb_control_transfer(handle,
+                                  LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_RECIPIENT_DEVICE,
+                                  USB_CMD_WRAPPED, 0, 0, (void *)&i2c, sizeof(i2c), 1000);
+    if(ret < 0)
+        return_fatal("transfer error at control stage\n");
+
+    struct usb_resp_i2c_generic_t resp;
+    int recv_size;
+    ret = libusb_interrupt_transfer(handle, int_ep, (void *)&resp, sizeof(resp), &recv_size, 1000);
+    if(ret < 0)
+        return_fatal("transfer error at first receive stage\n");
+    write_wrapper(&resp, recv_size);
+    close_wrapper();
+}
+
+void i2c_eeprom_read(libusb_device_handle *handle, uint8_t int_ep, int argc, char **argv)
+{
+    if(argc != 4)
+        return usage();
+    struct
+    {
+        struct usb_cmd_i2c_generic_t i2c;
+        struct usb_cmd_i2c_stage_t stage[3];
+        uint8_t dev_addr;
+        uint16_t addr;
+        uint8_t dev_addr2;
+    }__attribute__((packed)) i2c;
+    memset(&i2c, 0, sizeof(i2c));
+
+    char *end;
+    long dummy = strtol(argv[0], &end, 0);
+    if(*end != 0 || dummy < 0 || dummy > 0xff)
+        return_fatal("Invalid dev_addr choice\n");
+    i2c.dev_addr = dummy;
+    i2c.dev_addr2 = dummy | 1;
+
+    dummy = strtol(argv[1], &end, 0);
+    if(*end != 0 || dummy < 0 || dummy > 0xffff)
+        return_fatal("Invalid addr choice\n");
+    i2c.addr = dummy << 8 | dummy >> 8;
+
+    dummy = strtol(argv[2], &end, 0);
+    if(*end != 0 || dummy < 0 || dummy > 0xffff)
+        return_fatal("Invalid addr choice\n");
+    unsigned length = dummy;
+
+    i2c.i2c.hdr.cmd = CMD_I2C;
+    i2c.i2c.hdr.flags |= FLAGS_I2C_GENERIC;
+    i2c.i2c.nr_stages = 3;
+    i2c.stage[0].flags = FLAGS_I2C_STAGE_START | FLAGS_I2C_STAGE_SEND;
+    i2c.stage[0].length = 3;
+    i2c.stage[1].flags = FLAGS_I2C_STAGE_START | FLAGS_I2C_STAGE_SEND;
+    i2c.stage[1].length = 1;
+    i2c.stage[2].flags = FLAGS_I2C_STAGE_STOP;
+    i2c.stage[2].length = length;
+
+    open_wrapper("-");
+
+    int ret = libusb_control_transfer(handle,
+                                  LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_RECIPIENT_DEVICE,
+                                  USB_CMD_WRAPPED, 0, 0, (void *)&i2c, sizeof(i2c), 1000);
+    if(ret < 0)
+        return_fatal("transfer error at control stage\n");
+
+    struct usb_resp_i2c_generic_t resp;
+    int recv_size;
+    ret = libusb_interrupt_transfer(handle, int_ep, (void *)&resp, sizeof(resp), &recv_size, 1000);
+    if(ret < 0)
+        return_fatal("transfer error at first receive stage\n");
+    write_wrapper(&resp, recv_size);
+    close_wrapper();
+    open_wrapper(argv[3]);
+    while(resp.length > 0)
+    {
+        uint8_t buffer[64];
+        ret = libusb_interrupt_transfer(handle, int_ep, (void *)buffer, sizeof(buffer), &recv_size, 1000);
+        if(ret < 0)
+            return_fatal("transfer error at data stage\n");
+        write_wrapper(buffer, recv_size);
+        resp.length -= recv_size;
+    }
+    close_wrapper();
+}
+
 int main(int argc, char **argv)
 {
     int ret = 0;
@@ -396,6 +567,12 @@ int main(int argc, char **argv)
         mem_write32(handle, endp->bEndpointAddress, argc - 3, argv + 3);
     else if(strcmp(argv[2], "lradc_read") == 0)
         lradc_read(handle, endp->bEndpointAddress, argc - 3, argv + 3);
+    else if(strcmp(argv[2], "i2c_poke") == 0)
+        i2c_poke(handle, endp->bEndpointAddress, argc - 3, argv + 3);
+    else if(strcmp(argv[2], "i2c_poke_generic") == 0)
+        i2c_poke_generic(handle, endp->bEndpointAddress, argc - 3, argv + 3);
+    else if(strcmp(argv[2], "i2c_eeprom_read") == 0)
+        i2c_eeprom_read(handle, endp->bEndpointAddress, argc - 3, argv + 3);
     else
         usage();
 
