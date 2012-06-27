@@ -5,7 +5,7 @@
 #define USB_CMD_WRAPPED 0xaa
 #define USB_CMD_READLOG 0xbb
 
-#define PROTOCOL_VERSION    1
+#define PROTOCOL_VERSION    3
 
 #define PROTOCOL_MAGIC  "badrock"
 #define PROTOCOL_MAGIC_SIZE 7
@@ -27,6 +27,10 @@ struct usb_cmd_hdr_t
 #define CMD_SSP     0x02
 #define CMD_LRADC   0x03
 #define CMD_I2C     0x04
+#define CMD_PINCTRL 0x05
+#define CMD_FM_I2C  0x06
+#define CMD_RESET   0x07
+#define CMD_WATCHDOG    0x08
 
 #define FLAGS_READ  (1 << 0)
 #define FLAGS_WRITE (1 << 1)
@@ -138,6 +142,83 @@ struct usb_resp_i2c_generic_t
     uint32_t status;
     uint32_t length;
     uint8_t data[0];
+} __attribute__((packed));
+
+#define HW_I2C_CTRL1__SLAVE_IRQ         (1 << 0)
+#define HW_I2C_CTRL1__SLAVE_STOP_IRQ    (1 << 1)
+#define HW_I2C_CTRL1__MASTER_LOSS_IRQ   (1 << 2)
+#define HW_I2C_CTRL1__EARLY_TERM_IRQ    (1 << 3)
+#define HW_I2C_CTRL1__OVERSIZE_XFER_TERM_IRQ    (1 << 4)
+#define HW_I2C_CTRL1__NO_SLAVE_ACK_IRQ  (1 << 5)
+#define HW_I2C_CTRL1__DATA_ENGINE_COMPLT_IRQ    (1 << 6)
+#define HW_I2C_CTRL1__BUS_FREE_IRQ      (1 << 7)
+#define HW_I2C_CTRL1__ALL_IRQ           0x6c
+
+#define FLAGS_PINCTRL_FUNCTION  (1 << 0)
+#define FLAGS_PINCTRL_PULL      (1 << 1)
+#define FLAGS_PINCTRL_DRIVE     (1 << 2)
+#define FLAGS_PINCTRL_OUTPUT    (1 << 3)
+#define FLAGS_PINCTRL_INPUT     FLAGS_PINCTRL_OUTPUT
+#define FLAGS_PINCTRL_ENABLE    (1 << 4)
+
+struct usb_cmd_pinctrl_t
+{
+    struct usb_cmd_hdr_t hdr;
+    uint8_t flags;
+    uint8_t pin;
+    uint8_t function;
+    uint8_t pull;
+    uint8_t drive;
+    uint8_t output;
+    uint8_t enable;
+} __attribute__((packed));
+
+struct usb_resp_pinctrl_t
+{
+    uint8_t flags;
+    uint8_t function;
+    uint8_t drive;
+    uint8_t pull;
+    uint8_t input;
+    uint8_t enable;
+} __attribute__((packed));
+
+struct usb_cmd_fm_i2c_t
+{
+    struct usb_cmd_hdr_t hdr;
+    uint8_t dev_addr;
+    uint16_t size;
+    uint8_t buffer[0]; // for writes
+} __attribute__((packed));
+
+struct usb_resp_fm_i2c_t
+{
+    int16_t size; // negative on error
+    uint8_t buffer[0]; // for reads
+} __attribute__((packed));
+
+// reset methods: using clkctrl, watchdog
+#define FLAGS_RESET_CLKCTRL (1 << 2)
+
+struct usb_cmd_reset_t
+{
+    struct usb_cmd_hdr_t hdr;
+} __attribute__((packed));
+
+#define FLAGS_WATCHDOG_ENABLE   (1 << 2)
+#define FLAGS_WATCHDOG_DISABLE  (1 << 3)
+#define FLAGS_WATCHDOG_SET      (1 << 4)
+
+struct usb_cmd_watchdog_t
+{
+    struct usb_cmd_hdr_t hdr;
+    uint32_t count;
+} __attribute__((packed));
+
+struct usb_resp_watchdog_t
+{
+    uint8_t enabled;
+    uint32_t count;
 } __attribute__((packed));
 
 #endif /* __PROTOCOL__ */

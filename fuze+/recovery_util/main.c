@@ -1,8 +1,9 @@
 #include "stddef.h"
 #include "protocol.h"
 #include "logf.h"
+#include "generic_i2c.h"
 
-//#define HAVE_STMP3700
+#define HAVE_STMP3700
 
 /**
  *
@@ -31,6 +32,7 @@
 #define USB_BASE            0x80080000
 #define USB_NUM_ENDPOINTS   2
 #define MAX_PKT_SIZE        32
+#define MAX_PKT_SIZE_EP0    64
 
 /* USB device mode registers (Little Endian) */
 #define REG_ENDPOINTLISTADDR (*(volatile unsigned int *)(USB_BASE+0x158))
@@ -910,6 +912,125 @@ void imx233_ssp_setup_ssp2_sd_mmc_pins(bool enable_pullups, unsigned bus_width,
 
 /**
  *
+ * Digctl
+ *
+ */
+
+/* Digital control */
+#define HW_DIGCTL_BASE          0x8001C000
+#define HW_DIGCTL_CTRL          (*(volatile uint32_t *)(HW_DIGCTL_BASE + 0))
+#define HW_DIGCTL_CTRL__USB_CLKGATE (1 << 2)
+
+#define HW_DIGCTL_HCLKCOUNT     (*(volatile uint32_t *)(HW_DIGCTL_BASE + 0x20))
+
+#define HW_DIGCTL_MICROSECONDS  (*(volatile uint32_t *)(HW_DIGCTL_BASE + 0xC0))
+
+bool imx233_us_elapsed(uint32_t ref, unsigned us_delay)
+{
+    uint32_t cur = HW_DIGCTL_MICROSECONDS;
+    if(ref + us_delay <= ref)
+        return !(cur > ref) && !(cur < (ref + us_delay));
+    else
+        return (cur < ref) || cur >= (ref + us_delay);
+}
+
+void udelay(unsigned us)
+{
+    uint32_t ref = HW_DIGCTL_MICROSECONDS;
+    while(!imx233_us_elapsed(ref, us));
+}
+
+/**
+ *
+ * RTC
+ *
+ */
+
+#define HW_RTC_BASE     0x8005c000
+
+#define HW_RTC_CTRL         (*(volatile uint32_t *)(HW_RTC_BASE + 0x0))
+#define HW_RTC_CTRL__ALARM_IRQ_EN   (1 << 0)
+#define HW_RTC_CTRL__ONEMSEC_IRQ_EN (1 << 1)
+#define HW_RTC_CTRL__ALARM_IRQ      (1 << 2)
+#define HW_RTC_CTRL__ONEMSEC_IRQ    (1 << 3)
+#define HW_RTC_CTRL__WATCHDOGEN     (1 << 4)
+#define HW_RTC_CTRL__FORCE_UPDATE   (1 << 5)
+#define HW_RTC_CTRL__SUPPRESS_COPY2ANALOG   (1 << 6)
+
+#define HW_RTC_STAT         (*(volatile uint32_t *)(HW_RTC_BASE + 0x10))
+#define HW_RTC_STAT__NEW_REGS_BP    8
+#define HW_RTC_STAT__NEW_REGS_BM    0xff00
+#define HW_RTC_STAT__STALE_REGS_BP  16
+#define HW_RTC_STAT__STALE_REGS_BM  0xff0000
+#define HW_RTC_STAT__XTAL32768_PRESENT  (1 << 27)
+#define HW_RTC_STAT__XTAL32000_PRESENT  (1 << 28)
+#define HW_RTC_STAT__WATCHDOG_PRESENT   (1 << 29)
+#define HW_RTC_STAT__ALARM_PRESENT      (1 << 30)
+#define HW_RTC_STAT__RTC_PRESENT        (1 << 31)
+
+#define HW_RTC_MILLISECONDS (*(volatile uint32_t *)(HW_RTC_BASE + 0x20))
+
+#define HW_RTC_SECONDS      (*(volatile uint32_t *)(HW_RTC_BASE + 0x30))
+
+#define HW_RTC_ALARM        (*(volatile uint32_t *)(HW_RTC_BASE + 0x40))
+
+#define HW_RTC_WATCHDOG     (*(volatile uint32_t *)(HW_RTC_BASE + 0x50))
+
+#define HW_RTC_PERSISTENTx(x)   (*(volatile uint32_t *)(HW_RTC_BASE + 0x60 + (x) * 0x10))
+
+#define HW_RTC_PERSISTENT0  (*(volatile uint32_t *)(HW_RTC_BASE + 0x60))
+#define HW_RTC_PERSISTENT0__CLOCKSOURCE (1 << 0)
+#define HW_RTC_PERSISTENT0__ALARM_WAKE_EN   (1 << 1)
+#define HW_RTC_PERSISTENT0__ALARM_EN    (1 << 2)
+#define HW_RTC_PERSISTENT0__XTAL24MHZ_PWRUP (1 << 4)
+#define HW_RTC_PERSISTENT0__XTAL32KHZ_PWRUP (1 << 5)
+#define HW_RTC_PERSISTENT0__XTAL32_FREQ (1 << 6)
+#define HW_RTC_PERSISTENT0__ALARM_WAKE  (1 << 7)
+#define HW_RTC_PERSISTENT0__AUTO_RESTART    (1 << 17)
+#define HW_RTC_PERSISTENT0__SPARE_BP    18
+#define HW_RTC_PERSISTENT0__SPARE_BM    (0x3fff << 18)
+#define HW_RTC_PERSISTENT0__SPARE__RELEASE_GND  (1 << 19)
+
+#define HW_RTC_PERSISTENT1  (*(volatile uint32_t *)(HW_RTC_BASE + 0x70))
+
+#define HW_RTC_PERSISTENT2  (*(volatile uint32_t *)(HW_RTC_BASE + 0x80))
+
+#define HW_RTC_PERSISTENT3  (*(volatile uint32_t *)(HW_RTC_BASE + 0x90))
+
+#define HW_RTC_PERSISTENT4  (*(volatile uint32_t *)(HW_RTC_BASE + 0xa0))
+
+#define HW_RTC_PERSISTENT5  (*(volatile uint32_t *)(HW_RTC_BASE + 0xb0))
+
+static inline void imx233_rtc_init(void)
+{
+    __REG_CLR(HW_RTC_CTRL) = __BLOCK_CLKGATE;
+}
+
+static inline void imx233_rtc_enable_watchdog(bool en)
+{
+    if(en)
+        __REG_SET(HW_RTC_CTRL) = HW_RTC_CTRL__WATCHDOGEN;
+    else
+        __REG_CLR(HW_RTC_CTRL) = HW_RTC_CTRL__WATCHDOGEN;
+}
+
+static inline void imx233_rtc_set_watchdog_count(uint32_t count)
+{
+    HW_RTC_WATCHDOG = count;
+}
+
+static inline uint32_t imx233_rtc_get_watchdog_count(void)
+{
+    return HW_RTC_WATCHDOG;
+}
+
+static inline bool imx233_rtc_is_watchdog_enabled(void)
+{
+    return !!(HW_RTC_CTRL & HW_RTC_CTRL__WATCHDOGEN);
+}
+
+/**
+ *
  * Log
  *
  */
@@ -1061,6 +1182,103 @@ struct usb_resp_i2c_generic_t *i2c_generic(struct usb_cmd_i2c_generic_t *i2c)
     return resp;
 }
 
+/**
+ * Sansa Fuze+ fmradio uses the following pins:
+ * - B0P29 as CE apparently (active high)
+ * - B1P24 as SDA
+ * - B1P22 as SCL
+ */
+bool tuner_enable = false;
+
+bool tuner_power(bool enable)
+{
+    if(enable != tuner_enable)
+    {
+        /* CE is B029 (active high) */
+        imx233_set_pin_function(0, 29, PINCTRL_FUNCTION_GPIO);
+        imx233_set_pin_drive_strength(0, 29, PINCTRL_DRIVE_4mA);
+        imx233_enable_gpio_output(0, 29, enable);
+        imx233_set_gpio_output(0, 29, enable);
+        tuner_enable = enable;
+        /* give time to power up */
+        udelay(5);
+        //imx233_power_set_dcdc_freq(enable, HW_POWER_MISC__FREQSEL__24MHz);
+    }
+    return tuner_enable;
+}
+
+static int fmradio_i2c_bus = -1;
+
+static void i2c_scl_dir(bool out)
+{
+    imx233_enable_gpio_output(1, 22, out);
+}
+
+static void i2c_sda_dir(bool out)
+{
+    imx233_enable_gpio_output(1, 24, out);
+}
+
+static void i2c_scl_out(bool high)
+{
+    imx233_set_gpio_output(1, 22, high);
+}
+
+static void i2c_sda_out(bool high)
+{
+    imx233_set_gpio_output(1, 24, high);
+}
+
+static bool i2c_scl_in(void)
+{
+    return imx233_get_gpio_input_mask(1, 1 << 22);
+}
+
+static bool i2c_sda_in(void)
+{
+    return imx233_get_gpio_input_mask(1, 1 << 24);
+}
+
+static void i2c_delay(int d)
+{
+    udelay(d);
+}
+
+struct i2c_interface fmradio_i2c =
+{
+    .scl_dir = i2c_scl_dir,
+    .sda_dir = i2c_sda_dir,
+    .scl_out = i2c_scl_out,
+    .sda_out = i2c_sda_out,
+    .scl_in = i2c_scl_in,
+    .sda_in = i2c_sda_in,
+    .delay = i2c_delay,
+    .delay_hd_sta = 4,
+    .delay_hd_dat = 5,
+    .delay_su_dat = 1,
+    .delay_su_sto = 4,
+    .delay_su_sta = 5,
+    .delay_thigh = 4
+};
+
+void fmradio_i2c_init(void)
+{
+    if(fmradio_i2c_bus != -1) return;
+    imx233_set_pin_function(1, 24, PINCTRL_FUNCTION_GPIO);
+    imx233_set_pin_function(1, 22, PINCTRL_FUNCTION_GPIO);
+    fmradio_i2c_bus = i2c_add_node(&fmradio_i2c);
+}
+
+int fmradio_i2c_write(unsigned char address, const unsigned char* buf, int count)
+{
+    return i2c_write_data(fmradio_i2c_bus, address, -1, buf, count);
+}
+
+int fmradio_i2c_read(unsigned char address, unsigned char* buf, int count)
+{
+    return i2c_read_data(fmradio_i2c_bus, address, -1, buf, count);
+}
+
 void main(uint32_t arg)
 {
     logf("recovery_util\n");
@@ -1074,8 +1292,8 @@ void main(uint32_t arg)
     imx233_set_gpio_output(1, 29, false);
     imx233_ssp_setup_ssp2_sd_mmc_pins(true, 8, PINCTRL_DRIVE_8mA);
     
-    qh_array[0].max_pkt_length = 1 << 29 | MAX_PKT_SIZE << 16;
-    qh_array[1].max_pkt_length = 1 << 29 | MAX_PKT_SIZE << 16;
+    qh_array[0].max_pkt_length = 1 << 29 | MAX_PKT_SIZE_EP0 << 16;
+    qh_array[1].max_pkt_length = 1 << 29 | MAX_PKT_SIZE_EP0 << 16;
     qh_array[3].max_pkt_length = 1 << 29 | MAX_PKT_SIZE << 16;
     /* setup qh */
     REG_ENDPOINTLISTADDR = (unsigned int)qh_array;
@@ -1113,9 +1331,13 @@ void main(uint32_t arg)
         else if(req->bRequest != USB_CMD_WRAPPED)
             goto Lstall;
         /* receive more data */
-        prime_transfer(0, buffer, req->wLength, false, true);
+        int xfered =  prime_transfer(0, buffer, req->wLength, false, true);
         /* send ack */
         prime_transfer(0, 0, 0, true, true);
+
+        logf("received 0x%x bytes out of 0x%x\n", xfered, req->wLength);
+        if(xfered != req->wLength)
+            continue;
 
         logf("wrapped command: cmd=0x%x, flags=0x%x\n", hdr->cmd, hdr->flags);
         
@@ -1320,6 +1542,102 @@ void main(uint32_t arg)
             }
             else
                 goto Lstall;
+        }
+        else if(hdr->cmd == CMD_PINCTRL)
+        {
+            struct usb_cmd_pinctrl_t pinctrl = *(struct usb_cmd_pinctrl_t *)buffer;
+            unsigned bank = pinctrl.pin >> 5;
+            unsigned pin = pinctrl.pin & 0x1f;
+            logf("  pinctrl command: bank=%d pin=%d\n", bank, pin);
+            if(pinctrl.flags & FLAGS_PINCTRL_FUNCTION)
+            {
+                logf("    function: %d\n", pinctrl.function);
+                imx233_set_pin_function(bank, pin, pinctrl.function);
+            }
+            if(pinctrl.flags & FLAGS_PINCTRL_DRIVE)
+            {
+                logf("    drive: %d\n", pinctrl.drive);
+                imx233_set_pin_drive_strength(bank, pin, pinctrl.drive);
+            }
+            if(pinctrl.flags & FLAGS_PINCTRL_PULL)
+            {
+                logf("    pull: %d\n", pinctrl.pull);
+                imx233_enable_pin_pullup(bank, pin, pinctrl.pull);
+            }
+            if(pinctrl.flags & FLAGS_PINCTRL_OUTPUT)
+            {
+                logf("    output: %d\n", pinctrl.output);
+                imx233_set_gpio_output(bank, pin, pinctrl.output);
+            }
+            if(pinctrl.flags & FLAGS_PINCTRL_ENABLE)
+            {
+                logf("    enable: %d\n", pinctrl.enable);
+                imx233_enable_gpio_output(bank, pin, pinctrl.enable);
+            }
+            
+            struct usb_resp_pinctrl_t *pinctrl_resp = (struct usb_resp_pinctrl_t *)buffer;
+            memset((void *)pinctrl_resp, 0, sizeof(struct usb_resp_pinctrl_t));
+
+            pinctrl_resp->flags = FLAGS_PINCTRL_INPUT;
+            pinctrl_resp->input = !!imx233_get_gpio_input_mask(bank, 1 << pin);
+            
+            prime_transfer(1, pinctrl_resp, sizeof(struct usb_resp_pinctrl_t), true, true);
+        }
+        else if(hdr->cmd == CMD_FM_I2C)
+        {
+            struct usb_cmd_fm_i2c_t *cmd = (void *)buffer;
+            logf("  fm i2c command: flags=0x%x\n", cmd->hdr.flags);
+            logf("    dev addr=0x%x\n", cmd->dev_addr);
+            logf("    size=0x%x\n", cmd->size);
+            struct usb_resp_fm_i2c_t *resp = (void *)buffer;
+            /* WARNING: resp and cmd overlap */
+            fmradio_i2c_init();
+            int ret;
+            int size = 0;
+            if(cmd->hdr.flags & FLAGS_READ)
+            {
+                size = cmd->size;
+                ret = fmradio_i2c_read(cmd->dev_addr, resp->buffer, cmd->size);
+            }
+            else if(cmd->hdr.flags & FLAGS_WRITE)
+                ret = fmradio_i2c_write(cmd->dev_addr, cmd->buffer, cmd->size);
+            else
+                ret = -2;
+            resp->size = ret < 0 ? ret : size;
+
+            prime_transfer(1, resp, sizeof(struct usb_resp_fm_i2c_t), true, true);
+            uint8_t *ptr = resp->buffer;
+            unsigned xfered = ret < 0 ? 0 : size;
+            while(xfered > 0)
+            {
+                unsigned send = MIN(xfered, MAX_PKT_SIZE);
+                prime_transfer(1, ptr, send, true, true);
+                xfered -= send;
+                ptr += send;
+            }
+        }
+        else if(hdr->cmd == CMD_RESET)
+        {
+            logf("  reset command: flags=0x%x\n", hdr->flags);
+            if(hdr->flags & FLAGS_RESET_CLKCTRL)
+                HW_CLKCTRL_RESET = HW_CLKCTRL_RESET_CHIP;
+        }
+        else if(hdr->cmd == CMD_WATCHDOG)
+        {
+            struct usb_cmd_watchdog_t w = *(struct usb_cmd_watchdog_t *)buffer;
+            logf("  watchdog command: flags=0x%x\n", w.hdr.flags);
+            logf("    count=0x%x\n", w.count);
+            
+            if(w.hdr.flags & FLAGS_WATCHDOG_SET) imx233_rtc_set_watchdog_count(w.count);
+            if(w.hdr.flags & FLAGS_WATCHDOG_ENABLE) imx233_rtc_enable_watchdog(true);
+            if(w.hdr.flags & FLAGS_WATCHDOG_DISABLE) imx233_rtc_enable_watchdog(false);
+
+            struct usb_resp_watchdog_t *resp = (void *)buffer;
+            memset((void *)resp, 0, sizeof(struct usb_resp_watchdog_t));
+            resp->enabled = imx233_rtc_is_watchdog_enabled();
+            resp->count = imx233_rtc_get_watchdog_count();
+
+            prime_transfer(1, resp, sizeof(struct usb_resp_watchdog_t), true, true);
         }
         else
             goto Lstall;

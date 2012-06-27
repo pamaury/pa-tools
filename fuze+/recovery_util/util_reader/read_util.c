@@ -6,6 +6,7 @@
 #include <ctype.h>
 #include <stdbool.h>
 #include "../protocol.h"
+#include <unistd.h>
 
 libusb_context *ctx;
 
@@ -24,6 +25,22 @@ void usage(void)
     printf("  i2c_poke_generic <dev>\n");
     printf("  i2c_eeprom_read <dev> <addr> <length> <iofile>\n");
     printf("  i2c_eeprom_write <dev> <addr> <iofile>\n");
+    printf("  pinctrl B<bank>P<pin> [<pin opt> list]\n");
+    printf("  si4700_read <dev> [<reg>] <iofile>\n");
+    printf("  si4700_write <dev> <reg> <value>\n");
+    printf("  reset [clkctrl]\n");
+    printf("  watchdog [<watchdog opt>]\n");
+    printf("  stfm1000_read <dev> <reg> <iofile>\n");
+    printf("  stfm1000_write <dev> <reg> <value>\n");
+    printf("pin options:\n");
+    printf("  function=main|alt1|alt2|gpio\n");
+    printf("  drive=4|8|12|16\n");
+    printf("  pull=yes|no\n");
+    printf("  output=1|0\n");
+    printf("  enable=yes|no\n");
+    printf("watchdog options:\n");
+    printf("  count=<count>\n");
+    printf("  enable=yes|no\n");
     printf("If <ofile> is - then the output is pretty printed on stdout\n");
 }
 
@@ -125,6 +142,7 @@ void mem_read(libusb_device_handle *handle, uint8_t int_ep, int argc, char **arg
 
 void mem_write32(libusb_device_handle *handle, uint8_t int_ep, int argc, char **argv)
 {
+    (void) int_ep;
     if(argc != 2)
         return usage();
     char *end;
@@ -164,7 +182,7 @@ void otp_read(libusb_device_handle *handle, uint8_t int_ep, int argc, char **arg
     unsigned long reg = strtoul(argv[0], &end, 0);
     if(*end != 0)
         return_fatal("Invalid register\n");
-    printf("Reading OTP register %u, writing to %s\n", reg, argv[2]);
+    printf("Reading OTP register %lu, writing to %s\n", reg, argv[2]);
 
     open_wrapper(argv[1]);
 
@@ -310,6 +328,22 @@ void lradc_read(libusb_device_handle *handle, uint8_t int_ep, int argc, char **a
     close_wrapper();
 }
 
+const char *i2c_errstr(uint32_t ctrl1)
+{
+    if(ctrl1 & HW_I2C_CTRL1__MASTER_LOSS_IRQ) return "master loss";
+    if(ctrl1 & HW_I2C_CTRL1__NO_SLAVE_ACK_IRQ) return "no slave ack";
+    if(ctrl1 & HW_I2C_CTRL1__DATA_ENGINE_COMPLT_IRQ) return "complete";
+    if(ctrl1 & HW_I2C_CTRL1__SLAVE_STOP_IRQ) return "slave stop";
+    if(ctrl1 & HW_I2C_CTRL1__EARLY_TERM_IRQ) return "early term";
+    if(ctrl1 & HW_I2C_CTRL1__OVERSIZE_XFER_TERM_IRQ) return "oversize transfer";
+    return "unknown";
+}
+
+bool i2c_success(uint32_t ctrl1)
+{
+    return (ctrl1 & HW_I2C_CTRL1__ALL_IRQ) == HW_I2C_CTRL1__DATA_ENGINE_COMPLT_IRQ;
+}
+
 void i2c_poke(libusb_device_handle *handle, uint8_t int_ep, int argc, char **argv)
 {
     if(argc != 1)
@@ -341,6 +375,7 @@ void i2c_poke(libusb_device_handle *handle, uint8_t int_ep, int argc, char **arg
         return_fatal("transfer error at first receive stage\n");
     write_wrapper(&resp, recv_size);
     close_wrapper();
+    printf("status: %s\n", i2c_errstr(resp.ctrl1));
 }
 
 void i2c_poke_generic(libusb_device_handle *handle, uint8_t int_ep, int argc, char **argv)
@@ -513,9 +548,361 @@ void i2c_eeprom_write(libusb_device_handle *handle, uint8_t int_ep, int argc, ch
         if(ret < 0)
             return_fatal("transfer error at first receive stage\n");
         write_wrapper(&resp, recv_size);
+        usleep(5000);
     }
     fclose(f);
     close_wrapper();
+}
+
+void pinctrl(libusb_device_handle *handle, uint8_t int_ep, int argc, char **argv)
+{
+    if(argc == 0)
+        return usage();
+
+    struct usb_cmd_pinctrl_t pinctrl;
+    memset(&pinctrl, 0, sizeof(pinctrl));
+
+    pinctrl.hdr.cmd = CMD_PINCTRL;
+
+    if(argv[0][0] != 'B' && argv[0][0] != 'b') return usage();
+    if(argv[0][1] < '0' || argv[0][1] > '3') return usage();
+    pinctrl.pin |= (argv[0][1] -'0') << 5;
+    if(argv[0][2] != 'P' && argv[0][2] != 'b') return usage();
+    char *end;
+    unsigned long dummy = strtoul(&argv[0][3], &end, 10);
+    if(*end != 0 || dummy > 31) return usage();
+    pinctrl.pin |= dummy;
+
+    for(int i = 1; i < argc; i++)
+    {
+        char *p = strchr(argv[i], '=');
+        if(p == NULL)
+            return usage();
+        *p++ = 0;
+        if(strcmp(argv[i], "function") == 0)
+        {
+            pinctrl.flags |= FLAGS_PINCTRL_FUNCTION;
+            if(strcmp(p, "main") == 0) pinctrl.function = 0;
+            else if(strcmp(p, "alt1") == 0) pinctrl.function = 1;
+            else if(strcmp(p, "alt2") == 0) pinctrl.function = 2;
+            else if(strcmp(p, "gpio") == 0) pinctrl.function = 3;
+            else return usage();
+        }
+        else if(strcmp(argv[i], "drive") == 0)
+        {
+            pinctrl.flags |= FLAGS_PINCTRL_DRIVE;
+            if(strcmp(p, "4") == 0) pinctrl.drive = 0;
+            else if(strcmp(p, "8") == 0) pinctrl.drive = 1;
+            else if(strcmp(p, "12") == 0) pinctrl.drive = 2;
+            else if(strcmp(p, "16") == 0) pinctrl.drive = 3;
+            else return usage();
+        }
+        else if(strcmp(argv[i], "pull") == 0)
+        {
+            pinctrl.flags |= FLAGS_PINCTRL_PULL;
+            if(strcmp(p, "no") == 0) pinctrl.pull = 0;
+            else if(strcmp(p, "yes") == 0) pinctrl.pull = 1;
+            else return usage();
+        }
+        else if(strcmp(argv[i], "output") == 0)
+        {
+            pinctrl.flags |= FLAGS_PINCTRL_OUTPUT;
+            if(strcmp(p, "0") == 0) pinctrl.output = 0;
+            else if(strcmp(p, "1") == 0) pinctrl.output = 1;
+            else return usage();
+        }
+        else if(strcmp(argv[i], "enable") == 0)
+        {
+            pinctrl.flags |= FLAGS_PINCTRL_ENABLE;
+            if(strcmp(p, "no") == 0) pinctrl.enable = 0;
+            else if(strcmp(p, "yes") == 0) pinctrl.enable = 1;
+            else return usage();
+        }
+        else
+            return usage();
+    }
+
+    int ret = libusb_control_transfer(handle,
+                                    LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_RECIPIENT_DEVICE,
+                                    USB_CMD_WRAPPED, 0, 0, (void *)&pinctrl, sizeof(pinctrl), 1000);
+    if(ret < 0)
+        return_fatal("transfer error at control stage\n");
+
+    struct usb_resp_pinctrl_t resp;
+    int recv_size;
+    ret = libusb_interrupt_transfer(handle, int_ep, (void *)&resp, sizeof(resp), &recv_size, 1000);
+    if(ret < 0)
+        return_fatal("transfer error at receive stage\n");
+    open_wrapper("-");
+    write_wrapper(&resp, recv_size);
+    close_wrapper();
+
+    printf("pin state:\n");
+    if(resp.flags & FLAGS_PINCTRL_INPUT)
+        printf("  input: %d\n", resp.input);
+}
+
+void si4700_read(libusb_device_handle *handle, uint8_t int_ep, int argc, char **argv)
+{
+    if(argc < 2 || argc > 3)
+        return usage();
+
+    struct usb_cmd_fm_i2c_t fm_i2c;
+    memset(&fm_i2c, 0, sizeof(fm_i2c));
+
+    fm_i2c.hdr.cmd = CMD_FM_I2C;
+    fm_i2c.hdr.flags = FLAGS_READ;
+    
+    char *end;
+    unsigned long dummy = strtoul(argv[0], &end, 0);
+    if(*end != 0 || dummy > 0xff) return usage();
+    fm_i2c.dev_addr = dummy;
+    fm_i2c.size = 32;
+
+    long reg = -1;
+    char *iofile = NULL;
+    if(argc == 3)
+    {
+        reg = strtoul(argv[1], &end, 0);
+        if(*end != 0 || reg < 0 || reg > 15) return usage();
+        iofile = argv[2];
+    }
+    else
+        iofile = argv[1];
+
+    int ret = libusb_control_transfer(handle,
+                                    LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_RECIPIENT_DEVICE,
+                                    USB_CMD_WRAPPED, 0, 0, (void *)&fm_i2c, sizeof(fm_i2c), 1000);
+    if(ret < 0)
+        return_fatal("transfer error at control stage\n");
+
+    struct usb_resp_fm_i2c_t resp;
+    
+    int recv_size;
+    ret = libusb_interrupt_transfer(handle, int_ep, (void *)&resp, sizeof(resp), &recv_size, 1000);
+    if(ret < 0)
+        return_fatal("transfer error at first receive stage\n");
+    open_wrapper("-");
+    write_wrapper(&resp, recv_size);
+
+    bool valid_reg = false;
+    uint16_t regs[16];
+    if(resp.size > 0)
+    {
+        uint8_t data[32];
+        int xfered = 0;
+        while(xfered < resp.size)
+        {
+            ret = libusb_interrupt_transfer(handle, int_ep, (void *)&data[xfered], resp.size - xfered, &recv_size, 1000);
+            if(ret < 0)
+                return_fatal("transfer error at receive stage\n");
+            printf("xfer=%d\n", recv_size);
+            xfered += recv_size;
+        }
+
+        write_wrapper(&resp, recv_size);
+        close_wrapper();
+        open_wrapper(iofile);
+        write_wrapper(&resp, recv_size);
+        close_wrapper();
+
+        valid_reg = true;
+        for(int i = 0; i < 16; i++)
+            regs[(i + 0xa) % 16] = data[2 * i] << 8 | data[2 * i + 1];
+    }
+
+    printf("result:\n");
+    printf("  size: %d %s\n", resp.size, resp.size < 0 ? "(error)" : "");
+    if(reg != -1 && valid_reg)
+        printf("  register 0x%lx: 0x%x\n", reg, regs[reg]);
+}
+
+void si4700_write(libusb_device_handle *handle, uint8_t int_ep, int argc, char **argv)
+{
+    if(argc != 3)
+        return usage();
+
+    struct
+    {
+        struct usb_cmd_fm_i2c_t fm_i2c;
+        uint8_t data[32];
+    } __attribute__((packed)) fm_i2c;
+    memset(&fm_i2c, 0, sizeof(fm_i2c));
+
+    fm_i2c.fm_i2c.hdr.cmd = CMD_FM_I2C;
+    fm_i2c.fm_i2c.hdr.flags = FLAGS_READ;
+
+    char *end;
+    unsigned long dummy = strtoul(argv[0], &end, 0);
+    if(*end != 0 || dummy > 0xff) return usage();
+    fm_i2c.fm_i2c.dev_addr = dummy;
+    fm_i2c.fm_i2c.size = 32;
+
+    unsigned long reg = strtoul(argv[1], &end, 0);
+    if(*end != 0 || reg > 15) return usage();
+
+    unsigned long value = strtoul(argv[2], &end, 0);
+    if(*end != 0 || value > 0xffff) return usage();
+
+    int ret = libusb_control_transfer(handle,
+                                    LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_RECIPIENT_DEVICE,
+                                    USB_CMD_WRAPPED, 0, 0, (void *)&fm_i2c.fm_i2c, sizeof(fm_i2c.fm_i2c), 1000);
+    if(ret < 0)
+        return_fatal("transfer error at control stage\n");
+
+    struct usb_resp_fm_i2c_t resp;
+
+    int recv_size;
+    ret = libusb_interrupt_transfer(handle, int_ep, (void *)&resp, sizeof(resp), &recv_size, 1000);
+    if(ret < 0)
+        return_fatal("transfer error at first receive stage\n");
+
+    printf("read result:\n");
+    printf("  size: %d %s\n", resp.size, resp.size < 0 ? "(error)" : "");
+    if(resp.size < 0 || resp.size != 32)
+        return_fatal("unable to read all registers\n");
+
+    uint16_t regs[16];
+    uint8_t data[32];
+    int xfered = 0;
+    while(xfered < resp.size)
+    {
+        ret = libusb_interrupt_transfer(handle, int_ep, (void *)&data[xfered], resp.size - xfered, &recv_size, 1000);
+        if(ret < 0)
+            return_fatal("transfer error at receive stage\n");
+        printf("xfer=%d\n", recv_size);
+        xfered += recv_size;
+    }
+    for(int i = 0; i < 16; i++)
+        regs[(i + 0xa) % 16] = data[2 * i] << 8 | data[2 * i + 1];
+    printf("  register 0x%lx: was 0x%x will be 0x%lx\n", reg, regs[reg], value);
+    regs[reg] = value;
+
+    fm_i2c.fm_i2c.hdr.flags = FLAGS_WRITE;
+    for(int i = 0; i < 16; i++)
+    {
+        fm_i2c.data[2 * i] = regs[(i + 0x2) % 16] >> 8;
+        fm_i2c.data[2 * i + 1] = regs[(i + 0x2) % 16];
+    }
+
+    ret = libusb_control_transfer(handle,
+                                    LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_RECIPIENT_DEVICE,
+                                    USB_CMD_WRAPPED, 0, 0, (void *)&fm_i2c, sizeof(fm_i2c), 1000);
+    if(ret < 0)
+        return_fatal("transfer error at second control stage\n");
+
+    ret = libusb_interrupt_transfer(handle, int_ep, (void *)&resp, sizeof(resp), &recv_size, 1000);
+    if(ret < 0)
+        return_fatal("transfer error at second receive stage\n");
+
+    printf("write result:\n");
+    printf("  size: %d %s\n", resp.size, resp.size < 0 ? "(error)" : "");
+}
+
+void reset(libusb_device_handle *handle, uint8_t int_ep, int argc, char **argv)
+{
+    (void) int_ep;
+    if(argc > 1)
+        return usage();
+
+    struct usb_cmd_reset_t reset;
+    memset(&reset, 0, sizeof(reset));
+
+    reset.hdr.cmd = CMD_RESET;
+    
+    if(argc == 1)
+    {
+        if(strcmp(argv[0], "clkctrl") == 0)
+            reset.hdr.flags |= FLAGS_RESET_CLKCTRL;
+        else
+            return usage();
+    }
+    else
+        reset.hdr.flags |= FLAGS_RESET_CLKCTRL;
+
+    int ret = libusb_control_transfer(handle,
+                                    LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_RECIPIENT_DEVICE,
+                                    USB_CMD_WRAPPED, 0, 0, (void *)&reset, sizeof(reset), 1000);
+    if(ret < 0)
+        return_fatal("transfer error at control stage\n");
+}
+
+void watchdog(libusb_device_handle *handle, uint8_t int_ep, int argc, char **argv)
+{
+    (void) handle;
+    (void) int_ep;
+    (void) argc;
+    (void) argv;
+}
+
+void stfm1000_read(libusb_device_handle *handle, uint8_t int_ep, int argc, char **argv)
+{
+    if(argc != 3)
+        return usage();
+    struct
+    {
+        struct usb_cmd_i2c_generic_t i2c;
+        struct usb_cmd_i2c_stage_t stage[3];
+        uint8_t dev_addr;
+        uint8_t reg_addr;
+        uint8_t dev_addr2;
+    }__attribute__((packed)) i2c;
+
+    char *end;
+    long dummy = strtol(argv[0], &end, 0);
+    if(*end != 0 || dummy < 0 || dummy > 0xff)
+        return_fatal("Invalid dev_addr choice\n");
+    i2c.dev_addr = dummy;
+    i2c.dev_addr2 = dummy | 1;
+
+    dummy = strtol(argv[1], &end, 0);
+    if(*end != 0 || dummy < 0 || dummy > 0xff)
+        return_fatal("Invalid reg choice\n");
+    i2c.reg_addr = dummy;
+
+    i2c.i2c.hdr.cmd = CMD_I2C;
+    i2c.i2c.hdr.flags |= FLAGS_I2C_GENERIC;
+    i2c.i2c.nr_stages = 3;
+    i2c.stage[0].flags = FLAGS_I2C_STAGE_START | FLAGS_I2C_STAGE_SEND;
+    i2c.stage[0].length = 2;
+    i2c.stage[1].flags = FLAGS_I2C_STAGE_START | FLAGS_I2C_STAGE_SEND;
+    i2c.stage[1].length = 1;
+    i2c.stage[2].flags = FLAGS_I2C_STAGE_STOP;
+    i2c.stage[2].length = 4;
+
+    int ret = libusb_control_transfer(handle,
+                                LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_RECIPIENT_DEVICE,
+                                USB_CMD_WRAPPED, 0, 0, (void *)&i2c, sizeof(i2c), 1000);
+    if(ret < 0)
+        return_fatal("transfer error at control stage\n");
+
+    struct usb_resp_i2c_generic_t resp;
+    
+    int recv_size;
+    ret = libusb_interrupt_transfer(handle, int_ep, (void *)&resp, sizeof(resp), &recv_size, 1000);
+    if(ret < 0)
+        return_fatal("transfer error at first receive stage\n");
+    open_wrapper(argv[2]);
+    write_wrapper(&resp, recv_size);
+    close_wrapper();
+
+    uint8_t v[4];
+    ret = libusb_interrupt_transfer(handle, int_ep, (void *)v, sizeof(v), &recv_size, 1000);
+    if(ret < 0)
+        return_fatal("transfer error at second receive stage\n");
+    
+    printf("status: %s\n", i2c_errstr(resp.ctrl1));
+    unsigned long value = v[0] |v[1] << 8 | v[2] << 16 | v[3] << 24;
+    if(i2c_success(resp.ctrl1))
+        printf("  register 0x%x: 0x%lx\n", i2c.reg_addr, value);
+}
+
+void stfm1000_write(libusb_device_handle *handle, uint8_t int_ep, int argc, char **argv)
+{
+    (void) handle;
+    (void) int_ep;
+    (void) argc;
+    (void) argv;
 }
 
 int main(int argc, char **argv)
@@ -641,6 +1028,20 @@ int main(int argc, char **argv)
         i2c_eeprom_read(handle, endp->bEndpointAddress, argc - 3, argv + 3);
     else if(strcmp(argv[2], "i2c_eeprom_write") == 0)
         i2c_eeprom_write(handle, endp->bEndpointAddress, argc - 3, argv + 3);
+    else if(strcmp(argv[2], "pinctrl") == 0)
+        pinctrl(handle, endp->bEndpointAddress, argc - 3, argv + 3);
+    else if(strcmp(argv[2], "si4700_read") == 0)
+        si4700_read(handle, endp->bEndpointAddress, argc - 3, argv + 3);
+    else if(strcmp(argv[2], "si4700_write") == 0)
+        si4700_write(handle, endp->bEndpointAddress, argc - 3, argv + 3);
+    else if(strcmp(argv[2], "reset") == 0)
+        reset(handle, endp->bEndpointAddress, argc - 3, argv + 3);
+    else if(strcmp(argv[2], "watchdog") == 0)
+        watchdog(handle, endp->bEndpointAddress, argc - 3, argv + 3);
+    else if(strcmp(argv[2], "stfm1000_read") == 0)
+        stfm1000_read(handle, endp->bEndpointAddress, argc - 3, argv + 3);
+    else if(strcmp(argv[2], "stfm1000_write") == 0)
+        stfm1000_write(handle, endp->bEndpointAddress, argc - 3, argv + 3);
     else
         usage();
 
