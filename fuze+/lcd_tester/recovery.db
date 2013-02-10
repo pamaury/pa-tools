@@ -1,0 +1,30 @@
+sources
+{
+    stage0 = "boot/____.0.elf";
+    stage1 = "boot/____.1.elf";
+    sdram_prep = "boot/sdram_prep.elf";
+    clocks = "boot/clocks.elf";
+    power = "boot/power.elf";
+    recovery = "recovery.elf";
+    z3stage0 = "boot/zenxfi3/____.0.elf";
+    z3stage1 = "boot/zenxfi3/____.1.elf";
+    z3stage2 = "boot/zenxfi3/____.2.elf";
+}
+
+section(0)
+{
+    load z3stage0;
+    call z3stage0;
+    load z3stage1;
+    call z3stage1;
+    load z3stage2;
+    call z3stage2;
+    //load power;
+    //call power;
+    //load clocks;
+    //call clocks;
+    //load sdram_prep;
+    //call sdram_prep;
+    load recovery;
+    jump recovery;
+}

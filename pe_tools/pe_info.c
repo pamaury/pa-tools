@@ -429,6 +429,80 @@ char *lookup_ordinal_import(char *dll, uint16_t ord)
     return NULL;
 }
 
+void print_resource(IMAGE_NT_HEADERS32 *nt_hdr, void *rsrc_sec,
+    IMAGE_RESOURCE_DIRECTORY_ENTRY **levels, size_t level,
+    IMAGE_RESOURCE_DATA_ENTRY *data)
+{
+    static char *level_color[] = { RED, YELLOW, BLUE };
+    #define NR_COLOR_LEVELS (sizeof(level_color) / sizeof(level_color[0]))
+    
+    char buffer[1024];
+    #define resource_name(name) \
+        (({if(name & (1 << 31)) { \
+            IMAGE_RESOURCE_DIR_STRING_U *type_str = \
+                (void *)(rsrc_sec + (name & 0x7fffffff)); \
+            for(size_t i = 0; i < type_str->Length; i++) \
+                buffer[i] = type_str->NameString[i]; \
+            buffer[type_str->Length] = 0; \
+        } else { \
+            sprintf(buffer, "%d", name); } }), buffer)
+
+    printf("  ");
+    for(size_t i = 0; i < level; i++)
+    {
+        printf("%s%s", level_color[i % NR_COLOR_LEVELS], resource_name(levels[i]->Name));
+        if((i + 1) == level)
+            printf("%s:", GREEN);
+        else
+            printf("%s.", GREEN);
+    }
+    printf(" %sSize=%s%#x %sOffsetToData=%s%#x\n", GREEN, YELLOW, data->Size,
+        GREEN, YELLOW, data->OffsetToData);
+
+    char *prefix = getenv("RSRC_OUTPUT_PREFIX");
+    if(prefix == NULL)
+        return;
+    char filename[4096];
+    snprintf(filename, sizeof(filename), "%s", prefix);
+    for(size_t i = 0; i < level; i++)
+    {
+        strcat(filename, resource_name(levels[i]->Name));
+        if((i + 1) != level)
+            strcat(filename, ".");
+    }
+    FILE *f = fopen(filename, "wb");
+    if(f == NULL)
+        return;
+    void *buf = g_buf + __rva_to_rphys(data->OffsetToData, nt_hdr);
+    fwrite(buf, 1, data->Size, f);
+    fclose(f);
+}
+
+void print_resources(IMAGE_NT_HEADERS32 *nt_hdr, void *rsrc_sec,
+    IMAGE_RESOURCE_DIRECTORY_ENTRY **levels, size_t cur_level, size_t max_level,
+    IMAGE_RESOURCE_DIRECTORY *dir)
+{
+    if(cur_level >= max_level)
+        return;
+
+    IMAGE_RESOURCE_DIRECTORY_ENTRY *entry = (void *)(dir + 1);
+    for(size_t i = 0; i < dir->NumberOfNamedEntries + dir->NumberOfIdEntries; i++)
+    {
+        levels[cur_level] = &entry[i];
+        if(entry[i].OffsetToData & (1 << 31))
+        {
+            IMAGE_RESOURCE_DIRECTORY *subdir = rsrc_sec + (entry[i].OffsetToData & 0x7fffffff);
+            print_resources(nt_hdr, rsrc_sec, levels, cur_level + 1, max_level, subdir);
+        }
+        else
+        {
+            IMAGE_RESOURCE_DATA_ENTRY *data = rsrc_sec + entry[i].OffsetToData;
+            print_resource(nt_hdr, rsrc_sec, levels, cur_level + 1, data);
+        }
+        
+    }
+}
+
 void pe_info()
 {
     IMAGE_DOS_HEADER *dos_hdr = (IMAGE_DOS_HEADER *)g_buf;
@@ -650,6 +724,19 @@ void pe_info()
         }
     }
 
+    // resource directory
+    if(opt_hdr->DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE].Size != 0)
+    {
+        uint32_t offset = rva_to_rphys(opt_hdr->DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE].VirtualAddress);
+
+#define MAX_NR_LEVELS   8
+        IMAGE_RESOURCE_DIRECTORY_ENTRY *level_entry[MAX_NR_LEVELS];
+        printf("%sResources:\n", BLUE);
+
+        IMAGE_RESOURCE_DIRECTORY *root = (IMAGE_RESOURCE_DIRECTORY *)(g_buf + offset);
+        print_resources(nt_hdr, g_buf + offset, level_entry, 0, MAX_NR_LEVELS, root);
+    }
+
     // print memory map
     struct mem_region_tree_t *tree = build_memory_tree();
     fprintf(stdout, "%sstart addr     end addr     description\n", GREEN);
@@ -662,6 +749,8 @@ int main(int argc, char **argv)
     if(argc != 2 && argc != 3)
     {
         printf("usage: %s <pe file> [<ordinal import lookup prefix>]\n", argv[0]);
+        printf("Environment variables:\n");
+        printf("  RSRC_OUTPUT_PREFIX\tSpecific output prefix for resources\n");
         return 0;
     }
 

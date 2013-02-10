@@ -98,6 +98,33 @@
 #define IMAGE_FILE_MACHINE_THUMB      0x01c2
 #define IMAGE_FILE_MACHINE_AMD64      0x8664
 
+#define IS_INTRESOURCE(i) (((uint32_t *)(i) >> 16) == 0)
+#define MAKEINTRESOURCEA(i) (char *)((uint32_t *)((uint16_t)(i)))
+#define MAKEINTRESOURCEW(i) (wchar_t *)((uint32_t *)((uint16_t)(i)))
+#define MAKEINTRESOURCE(i) MAKEINTRESOURCEA(i)
+
+#define RT_CURSOR MAKEINTRESOURCE(1)
+#define RT_FONT MAKEINTRESOURCE(8)
+#define RT_BITMAP MAKEINTRESOURCE(2)
+#define RT_ICON MAKEINTRESOURCE(3)
+#define RT_MENU MAKEINTRESOURCE(4)
+#define RT_DIALOG MAKEINTRESOURCE(5)
+#define RT_STRING MAKEINTRESOURCE(6)
+#define RT_FONTDIR MAKEINTRESOURCE(7)
+#define RT_ACCELERATOR MAKEINTRESOURCE(9)
+#define RT_RCDATA MAKEINTRESOURCE(10)
+#define RT_MESSAGETABLE MAKEINTRESOURCE(11)
+#define DIFFERENCE 11
+#define RT_GROUP_CURSOR MAKEINTRESOURCE((uint32_t *)RT_CURSOR+DIFFERENCE)
+#define RT_GROUP_ICON MAKEINTRESOURCE((uint32_t *)RT_ICON+DIFFERENCE)
+#define RT_VERSION MAKEINTRESOURCE(16)
+#define RT_DLGINCLUDE MAKEINTRESOURCE(17)
+#define RT_PLUGPLAY MAKEINTRESOURCE(19)
+#define RT_VXD MAKEINTRESOURCE(20)
+#define RT_ANICURSOR MAKEINTRESOURCE(21)
+#define RT_ANIICON MAKEINTRESOURCE(22)
+#define RT_HTML MAKEINTRESOURCE(23)
+
 typedef struct _IMAGE_DOS_HEADER {
     uint16_t e_magic;
     uint16_t e_cblp;
@@ -204,6 +231,32 @@ typedef struct _IMAGE_EXPORT_DIRECTORY {
     uint32_t AddressOfNames;
     uint32_t AddressOfNameOrdinals;
 } IMAGE_EXPORT_DIRECTORY,*PIMAGE_EXPORT_DIRECTORY;
+
+typedef struct _IMAGE_RESOURCE_DIRECTORY {
+    uint32_t Characteristics;
+    uint32_t TimeDateStamp;
+    uint16_t MajorVersion;
+    uint16_t MinorVersion;
+    uint16_t NumberOfNamedEntries;
+    uint16_t NumberOfIdEntries;
+} IMAGE_RESOURCE_DIRECTORY, *PIMAGE_RESOURCE_DIRECTORY;
+
+typedef struct _IMAGE_RESOURCE_DIRECTORY_ENTRY {
+    uint32_t Name;
+    uint32_t OffsetToData;
+} IMAGE_RESOURCE_DIRECTORY_ENTRY, *PIMAGE_RESOURCE_DIRECTORY_ENTRY;
+
+typedef struct _IMAGE_RESOURCE_DATA_ENTRY {
+    uint32_t OffsetToData;
+    uint32_t Size;
+    uint32_t CodePage;
+    uint32_t Reserved;
+} IMAGE_RESOURCE_DATA_ENTRY, *PIMAGE_RESOURCE_DATA_ENTRY;
+
+typedef struct _IMAGE_RESOURCE_DIR_STRING_U {
+    uint16_t Length;
+    uint16_t NameString[ 1 ];
+} IMAGE_RESOURCE_DIR_STRING_U, *PIMAGE_RESOURCE_DIR_STRING_U;
 
 typedef struct _IMAGE_IMPORT_BY_NAME {
     uint16_t Hint;
