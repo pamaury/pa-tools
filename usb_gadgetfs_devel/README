@@ -1,0 +1,14 @@
+First copy all the files into /usr/src/usb_gadgetfs_devel-1.0/
+
+To register the driver with DKMS, run as root:
+dkms add -m usb_gadgetfs_devel -v 1.0
+
+To build the driver with DKMS, run as root:
+dkms build -m usb_gadgetfs_devel -v 1.0
+
+To install the driver with DKMS, run as root:
+dkms install -m usb_gadgetfs_devel -v 1.0
+
+NOTE: to build the driver, you'll need at least the kernel headers
+and the kernel development tools, and dkms obviously
+
