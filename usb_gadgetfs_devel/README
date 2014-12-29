@@ -1,3 +1,23 @@
+Introduction
+============
+
+This directory contains the necessary files to register two
+drivers to the DKMS system:
+- dummy_hcd: this is a Host+UDC driver to ease usb gadget
+  development, it is also useful to fake a usb device on a
+  host
+- gadgetfs: a file system to build userspace usb gadget drivers
+
+Since both drivers are hardly ever compiled in stock kernels
+except on embedded targets, the only option is to recompile the
+kernel or build the modules. This approach uses DKMS to download
+the source code from the Linus tree (using GitHub mirror)
+and build the two modules. The advantage is that once it is
+registered, it will automatically rebuilt on each kernel update.
+
+Installation
+============
+
 First copy all the files into /usr/src/usb_gadgetfs_devel-1.0/
 
 To register the driver with DKMS, run as root:
@@ -12,3 +32,9 @@ dkms install -m usb_gadgetfs_devel -v 1.0
 NOTE: to build the driver, you'll need at least the kernel headers
 and the kernel development tools, and dkms obviously
 
+Troubleshooting
+===============
+
+Currently it doesn't work for kernels >=3.17 because the layout of
+the gadget drivers changed. Once I have time, I'll fix the prebuild
+script to differentiate between version <3.16 and >= 3.17
