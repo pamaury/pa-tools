@@ -35,6 +35,6 @@ and the kernel development tools, and dkms obviously
 Troubleshooting
 ===============
 
-Currently it doesn't work for kernels >=3.17 because the layout of
+Currently it only works for kernels >=3.17 because the layout of
 the gadget drivers changed. Once I have time, I'll fix the prebuild
 script to differentiate between version <3.16 and >= 3.17

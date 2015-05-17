@@ -5,5 +5,5 @@ echo "prebuild"
 echo "kver: $kernelver"
 echo "gadget url: $gadgeturl"
 
-curl -o dummy_hcd.c "$gadgeturl/dummy_hcd.c"
-curl -o inode.c "$gadgeturl/inode.c"
+curl -o dummy_hcd.c "$gadgeturl/udc/dummy_hcd.c"
+curl -o inode.c "$gadgeturl/legacy/inode.c"
