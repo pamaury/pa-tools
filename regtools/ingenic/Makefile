@@ -1,0 +1,23 @@
+DEFINES=
+CC?=gcc
+CXX?=g++
+LD?=g++
+REGTOOLS_DIR=/home/pamaury/project/rockbox/myrockbox/utils/regtools/
+INCLUDE=-I$(REGTOOLS_DIR)/include
+CFLAGS=-g -std=c99 -Wall $(DEFINES) $(INCLUDE)
+CXXFLAGS=-g -Wall $(DEFINES) $(INCLUDE) -std=gnu++11
+LDFLAGS=-L$(REGTOOLS_DIR)/lib -lsocdesc -lxml2
+SRC=$(wildcard *.c)
+SRCXX=$(wildcard *.cpp)
+EXEC=$(SRC:.c=) $(SRCXX:.cpp=)
+
+all: $(EXEC)
+
+%: %.c $(LIB)
+	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
+
+%: %.cpp $(LIB)
+	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
+
+clean:
+	rm -fr $(EXEC)
