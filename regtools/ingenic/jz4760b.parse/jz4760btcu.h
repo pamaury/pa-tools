@@ -97,12 +97,14 @@ register TCSR goto<n> "(n) * TCU_GOS + TCU_TCSR_OFFSET" export ""
 // 
 register TER export "Timer counter enable register"
 register TER int OSTEN goto 15
-const TCU_TER_TCEN 0xff
+const TCU_TER_TCEN_BIT 0
+register TER int TCEN goto (0xff << TCU_TER_TCEN_BIT)
 
 // 
 register TESR export "Timer counter enable set register"
 register TESR int OST goto 15
-const TCU_TESR_TIMER 0xff
+const TCU_TESR_TIMER_BIT 0
+register TESR int TIMER goto (0xff << TCU_TESR_TIMER_BIT)
 
 // 
 register TECR export "Timer counter enable clear register"

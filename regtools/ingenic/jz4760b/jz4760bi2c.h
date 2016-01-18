@@ -100,8 +100,10 @@
 #define I2C_CTRL_REST		(1 << 5)
 #define I2C_CTRL_MATP		(1 << 4) /* 1: 10bit address 0: 7bit addressing*/
 #define I2C_CTRL_SATP		(1 << 3) /* standard mode 100kbps */
-#define I2C_CTRL_SPDF		(2 << 1) /* fast mode 400kbps */
-#define I2C_CTRL_SPDS		(1 << 1) /* standard mode 100kbps */
+#define I2C_CTRL_SPD_BIT	1 /* speed */
+#define I2C_CTRL_SPD_MASK	(0x3 << I2C_CTRL_SPD_BIT) /* speed */
+#define I2C_CTRL_SPD_SPDF		(2 << I2C_CTRL_SPD_BIT) /* fast mode 400kbps */
+#define I2C_CTRL_SPD_SPDS		(1 << I2C_CTRL_SPD_BIT) /* standard mode 100kbps */
 #define I2C_CTRL_MD		(1 << 0) /* master enabled*/
 
 /* I2C target address (TAR) */

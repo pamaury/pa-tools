@@ -99,7 +99,7 @@
   #define CIM_CFG_DSM_CIM	  (1 << CIM_CFG_DSM_BIT) /* CCIR656 Interlace Mode */
   #define CIM_CFG_DSM_GCM	  (2 << CIM_CFG_DSM_BIT) /* Gated Clock Mode */
 
-/* CIM Control Register  (CIM_CTRL) */
+/* CIM Control Register  (CTRL) */
 #define	CIM_CTRL_EEOF_LINE_BIT	20
 #define	CIM_CTRL_EEOF_LINE_MASK	(0xfff << CIM_CTRL_EEOF_LINE_BIT)
 #define	CIM_CTRL_FRC_BIT	16
@@ -145,7 +145,7 @@
 #define CIM_CTRL2_EME		(1 << 1)
 #define CIM_CTRL2_APM		(1 << 0)
 
-/* CIM State Register  (CIM_STATE) */
+/* CIM State Register  (STATE) */
 #define CIM_STATE_CR_RF_OF	(1 << 27)
 #define CIM_STATE_CR_RF_TRIG	(1 << 26)
 #define CIM_STATE_CR_RF_EMPTY	(1 << 25)
@@ -167,7 +167,7 @@
 #define	CIM_STATE_RXF_EMPTY	(1 << 1) /* RXFIFO empty irq */
 #define	CIM_STATE_VDD		(1 << 0) /* CIM disabled irq */
 
-/* CIM DMA Command Register (CIM_CMD) */
+/* CIM DMA Command Register (CMD) */
 
 #define	CIM_CMD_SOFINT		(1 << 31) /* enable DMA start irq */
 #define	CIM_CMD_EOFINT		(1 << 30) /* enable DMA end irq */
@@ -177,13 +177,13 @@
 #define	CIM_CMD_LEN_BIT		0
 #define	CIM_CMD_LEN_MASK	(0xffffff << CIM_CMD_LEN_BIT)
 
-/* CIM Window-Image Size Register  (CIM_SIZE) */
+/* CIM Window-Image Size Register  (SIZE) */
 #define	CIM_SIZE_LPF_BIT	16 /* Lines per freame for csc output image */
 #define	CIM_SIZE_LPF_MASK	(0x1fff << CIM_SIZE_LPF_BIT)
 #define	CIM_SIZE_PPL_BIT	0 /* Pixels per line for csc output image, should be an even number */
 #define	CIM_SIZE_PPL_MASK	(0x1fff << CIM_SIZE_PPL_BIT)
 
-/* CIM Image Offset Register  (CIM_OFFSET) */
+/* CIM Image Offset Register  (OFFSET) */
 #define	CIM_OFFSET_V_BIT	16 /* Vertical offset */
 #define	CIM_OFFSET_V_MASK	(0xfff << CIM_OFFSET_V_BIT)
 #define	CIM_OFFSET_H_BIT	0 /* Horizontal offset, should be an enen number */

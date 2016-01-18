@@ -81,11 +81,13 @@
 
 /* Timer counter enable register(TER) */
 #define TCU_TER_OSTEN	BIT15
-#define TCU_TER_TCEN 0xff
+#define TCU_TER_TCEN_BIT 0
+#define TCU_TER_TCEN_MASK (0xff << TCU_TER_TCEN_BIT)
 
 /* Timer counter enable set register(TESR) */
 #define TCU_TESR_OST	BIT15
-#define TCU_TESR_TIMER 0xff
+#define TCU_TESR_TIMER_BIT  0
+#define TCU_TESR_TIMER_MASK (0xff << TCU_TESR_TIMER_BIT)
 
 /* Timer counter enable clear register(TECR) */
 #define TCU_TECR_OST	BIT15

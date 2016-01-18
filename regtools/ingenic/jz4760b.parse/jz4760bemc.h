@@ -86,7 +86,7 @@ register DMAR sizeof 32
 // #define REG_EMC_DMAR1	REG32(EMC_DMAR1)
 
 // 
-/* Bus Control Register */
+register BCR export "Bus Control Register"
 const EMC_BCR_BT_SEL_BIT 30
 register BCR int BT_SEL goto (0x3 << EMC_BCR_BT_SEL_BIT)
 register BCR int PK_SEL goto 24
@@ -98,7 +98,7 @@ register BCR int BRE goto 1
 register BCR int ENDIAN goto 0
 
 // 
-/* Static Memory Control Register */
+register SMCR export "Static Memory Control Register"
 const EMC_SMCR_STRV_BIT 24
 register SMCR int STRV goto (0x0f << EMC_SMCR_STRV_BIT)
 const EMC_SMCR_TAW_BIT 20
@@ -124,14 +124,14 @@ register SMCR int BL enum "32" 3
 register SMCR int SMT goto 0
 
 // 
-/* Static Memory Bank Addr Config Reg */
+register SACR export "Static Memory Bank Addr Config Reg"
 const EMC_SACR_BASE_BIT 8
 register SACR int BASE goto (0xff << EMC_SACR_BASE_BIT)
 const EMC_SACR_MASK_BIT 0
 register SACR int MASK goto (0xff << EMC_SACR_MASK_BIT)
 
 // 
-/* NAND Flash Control/Status Register */
+register NFCSR export "NAND Flash Control/Status Register"
 register NFCSR int NFCE4 goto 7 export "NAND Flash Enable"
 register NFCSR int NFE4 goto 6 export "NAND Flash FCE# Assertion Enable"
 register NFCSR int NFCE3 goto 5
@@ -142,9 +142,9 @@ register NFCSR int NFCE1 goto 1
 register NFCSR int NFE1 goto 0
 
 // 
-/* DRAM Control Register */
+register DMCR export "DRAM Control Register"
 const EMC_DMCR_BW_BIT 31
-// #define EMC_DMCR_BW		(1 << EMC_DMCR_BW_BIT)
+register DMCR int BW goto (1 << EMC_DMCR_BW_BIT)
 const EMC_DMCR_CA_BIT 26
 register DMCR int CA goto (0x07 << EMC_DMCR_CA_BIT)
 register DMCR int CA enum "8" 0
@@ -161,7 +161,7 @@ register DMCR int RA enum "11" 0
 register DMCR int RA enum "12" 1
 register DMCR int RA enum "13" 2
 const EMC_DMCR_BA_BIT 19
-// #define EMC_DMCR_BA		(1 << EMC_DMCR_BA_BIT)
+register DMCR int BA goto (1 << EMC_DMCR_BA_BIT)
 register DMCR int PDM goto 18
 register DMCR int EPIN goto 17
 register DMCR int MBSEL goto 16
@@ -179,7 +179,7 @@ const EMC_DMCR_TCL_BIT 0
 register DMCR int TCL goto (0x03 << EMC_DMCR_TCL_BIT)
 
 // 
-/* Refresh Time Control/Status Register */
+register RTCSR export "Refresh Time Control/Status Register"
 register RTCSR int SFR goto 8 export "self refresh flag"
 register RTCSR int CMF goto 7
 const EMC_RTCSR_CKS_BIT 0
@@ -194,14 +194,14 @@ register RTCSR int CKS enum "2048" 6
 register RTCSR int CKS enum "4096" 7
 
 // 
-/* SDRAM Bank Address Configuration Register */
+register DMAR export "SDRAM Bank Address Configuration Register"
 const EMC_DMAR_BASE_BIT 8
 register DMAR int BASE goto (0xff << EMC_DMAR_BASE_BIT)
 const EMC_DMAR_MASK_BIT 0
 register DMAR int MASK goto (0xff << EMC_DMAR_MASK_BIT)
 
 // 
-/* Mode Register of SDRAM bank 0 */
+register SDMR export "Mode Register of SDRAM bank"
 register SDMR int BM goto 9 export "Write Burst Mode"
 const EMC_SDMR_OM_BIT 7
 register SDMR int OM export "Operating Mode"

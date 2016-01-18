@@ -80,7 +80,9 @@ register DCS int LASTMD1 goto 28 export "BCH Decoding last mode 1, there's two d
 const BDMAC_DCS_CDOA_BIT 16
 register DCS int CDOA export "copy of DMA offset address"
 register DCS int CDOA goto (0xff << BDMAC_DCS_CDOA_BIT)
-// #define BDMAC_DCS_BERR	(0x1f << 7)  /* BCH error within this transfer, Only for channel 0 */
+const BDMAC_DCS_BERR_BIT 7
+register DCS int BERR export "BCH error within this transfer, Only for channel 0"
+register DCS int BERR goto (0x1f << BDMAC_DCS_BERR_BIT)
 register DCS int BUERR goto 6 export "BCH uncorrectable error, only for channel 0"
 register DCS int NSERR goto 5 export "status error, only for channel 1"
 register DCS int AR goto 4 export "address error"

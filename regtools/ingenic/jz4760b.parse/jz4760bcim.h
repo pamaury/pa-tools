@@ -106,7 +106,7 @@ register CFG int DSM enum CIM 1 export "CCIR656 Interlace Mode"
 register CFG int DSM enum GCM 2 export "Gated Clock Mode"
 
 // 
-/* CIM Control Register  (CIM_CTRL) */
+register CTRL export "CIM Control Register"
 const CIM_CTRL_EEOF_LINE_BIT 20
 register CTRL int EEOF_LINE goto (0xfff << CIM_CTRL_EEOF_LINE_BIT)
 const CIM_CTRL_FRC_BIT 16
@@ -157,7 +157,7 @@ register CTRL2 int EME goto 1
 register CTRL2 int APM goto 0
 
 // 
-/* CIM State Register  (CIM_STATE) */
+register STATE export "CIM State Register"
 register STATE int CR_RF_OF goto 27
 register STATE int CR_RF_TRIG goto 26
 register STATE int CR_RF_EMPTY goto 25
@@ -183,7 +183,7 @@ register STATE int RXF_EMPTY goto 1 export "RXFIFO empty irq"
 register STATE int VDD goto 0 export "CIM disabled irq"
 
 // 
-/* CIM DMA Command Register (CIM_CMD) */
+register CMD export "CIM DMA Command Register"
 
 // 
 register CMD int SOFINT goto 31 export "enable DMA start irq"
@@ -195,7 +195,7 @@ const CIM_CMD_LEN_BIT 0
 register CMD int LEN goto (0xffffff << CIM_CMD_LEN_BIT)
 
 // 
-/* CIM Window-Image Size Register  (CIM_SIZE) */
+register SIZE export "CIM Window-Image Size Register"
 const CIM_SIZE_LPF_BIT 16
 register SIZE int LPF export "Lines per freame for csc output image"
 register SIZE int LPF goto (0x1fff << CIM_SIZE_LPF_BIT)
@@ -204,7 +204,7 @@ register SIZE int PPL export "Pixels per line for csc output image, should be an
 register SIZE int PPL goto (0x1fff << CIM_SIZE_PPL_BIT)
 
 // 
-/* CIM Image Offset Register  (CIM_OFFSET) */
+register OFFSET export "CIM Image Offset Register"
 const CIM_OFFSET_V_BIT 16
 register OFFSET int V export "Vertical offset"
 register OFFSET int V goto (0xfff << CIM_OFFSET_V_BIT)

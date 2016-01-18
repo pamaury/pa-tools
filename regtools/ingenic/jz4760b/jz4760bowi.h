@@ -51,9 +51,9 @@
 #define OWI_OWICFG_ENA	BIT0
 
 /* OWI control register(OWICTL) */
-#define OWICTL_EBYTE	BIT2
-#define OWICTL_EBIT	BIT1
-#define OWICTL_ERST	BIT0
+#define OWI_OWICTL_EBYTE	BIT2
+#define OWI_OWICTL_EBIT	BIT1
+#define OWI_OWICTL_ERST	BIT0
 
 /* OWI status register(OWISTS) */
 #define OWI_OWISTS_PST		BIT7

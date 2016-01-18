@@ -108,8 +108,11 @@ register CTRL int SLVDIS goto 6 export "after reset slave is disabled"
 register CTRL int REST goto 5
 register CTRL int MATP goto 4 export "1: 10bit address 0: 7bit addressing"
 register CTRL int SATP goto 3 export "standard mode 100kbps"
-// #define I2C_CTRL_SPDF		(2 << 1) /* fast mode 400kbps */
-register CTRL int SPDS goto 1 export "standard mode 100kbps"
+const I2C_CTRL_SPD_BIT 1
+register CTRL int SPD export "speed"
+register CTRL int SPD goto (0x3 << I2C_CTRL_SPD_BIT) export "speed"
+register CTRL int SPD enum SPDF 2 export "fast mode 400kbps"
+register CTRL int SPD enum SPDS 1 export "standard mode 100kbps"
 register CTRL int MD goto 0 export "master enabled"
 
 // 

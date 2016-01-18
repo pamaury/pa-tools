@@ -109,28 +109,28 @@ register CPCCR int CE goto 22
 register CPCCR int PCS goto 21
 
 // 
-const CPM_CPCCR_SDIV_LSB 24
-register CPCCR int SDIV goto (27, CPM_CPCCR_SDIV_LSB)
+const CPM_CPCCR_SDIV_BIT 24
+register CPCCR int SDIV goto (27, CPM_CPCCR_SDIV_BIT)
 
 // 
-const CPM_CPCCR_H2DIV_LSB 16
-register CPCCR int H2DIV goto (19, CPM_CPCCR_H2DIV_LSB)
+const CPM_CPCCR_H2DIV_BIT 16
+register CPCCR int H2DIV goto (19, CPM_CPCCR_H2DIV_BIT)
 
 // 
-const CPM_CPCCR_MDIV_LSB 12
-register CPCCR int MDIV goto (15, CPM_CPCCR_MDIV_LSB)
+const CPM_CPCCR_MDIV_BIT 12
+register CPCCR int MDIV goto (15, CPM_CPCCR_MDIV_BIT)
 
 // 
-const CPM_CPCCR_PDIV_LSB 8
-register CPCCR int PDIV goto (11, CPM_CPCCR_PDIV_LSB)
+const CPM_CPCCR_PDIV_BIT 8
+register CPCCR int PDIV goto (11, CPM_CPCCR_PDIV_BIT)
 
 // 
-const CPM_CPCCR_HDIV_LSB 4
-register CPCCR int HDIV goto (7, CPM_CPCCR_HDIV_LSB)
+const CPM_CPCCR_HDIV_BIT 4
+register CPCCR int HDIV goto (7, CPM_CPCCR_HDIV_BIT)
 
 // 
-const CPM_CPCCR_CDIV_LSB 0
-register CPCCR int CDIV goto (3, CPM_CPCCR_CDIV_LSB)
+const CPM_CPCCR_CDIV_BIT 0
+register CPCCR int CDIV goto (3, CPM_CPCCR_CDIV_BIT)
 
 // 
 register LCR export "Low power control register"
@@ -142,18 +142,18 @@ register LCR int PDGPSS goto 24
 register LCR int DOZE goto 2
 
 // 
-const CPM_LCR_PST_LSB 8
-register LCR int PST goto (19, CPM_LCR_PST_LSB)
+const CPM_LCR_PST_BIT 8
+register LCR int PST goto (19, CPM_LCR_PST_BIT)
 
 // 
-const CPM_LCR_DUTY_LSB 3
-register LCR int DUTY goto (7, CPM_LCR_DUTY_LSB)
+const CPM_LCR_DUTY_BIT 3
+register LCR int DUTY goto (7, CPM_LCR_DUTY_BIT)
 
 // 
-const CPM_LCR_LPM_LSB 0
-register LCR int LPM goto (1, CPM_LCR_LPM_LSB)
-// #define CPM_LCR_LPM_IDLE            (0x0 << CPM_LCR_LPM_LSB)
-// #define CPM_LCR_LPM_SLEEP           (0x1 << CPM_LCR_LPM_LSB)
+const CPM_LCR_LPM_BIT 0
+register LCR int LPM goto (1, CPM_LCR_LPM_BIT)
+register LCR int LPM enum IDLE 0x0
+register LCR int LPM enum SLEEP 0x1
 
 // 
 register RSR export "Reset status register"
@@ -170,20 +170,20 @@ register CPPCR0 int PLLBP goto 9
 register CPPCR0 int PLLEN goto 8
 
 // 
-const CPM_CPPCR0_PLLM_LSB 24
-register CPPCR0 int PLLM goto (30, CPM_CPPCR0_PLLM_LSB)
+const CPM_CPPCR0_PLLM_BIT 24
+register CPPCR0 int PLLM goto (30, CPM_CPPCR0_PLLM_BIT)
 
 // 
-const CPM_CPPCR0_PLLN_LSB 18
-register CPPCR0 int PLLN goto (21, CPM_CPPCR0_PLLN_LSB)
+const CPM_CPPCR0_PLLN_BIT 18
+register CPPCR0 int PLLN goto (21, CPM_CPPCR0_PLLN_BIT)
 
 // 
-const CPM_CPPCR0_PLLOD_LSB 16
-register CPPCR0 int PLLOD goto (17, CPM_CPPCR0_PLLOD_LSB)
+const CPM_CPPCR0_PLLOD_BIT 16
+register CPPCR0 int PLLOD goto (17, CPM_CPPCR0_PLLOD_BIT)
 
 // 
-const CPM_CPPCR0_PLLST_LSB 0
-register CPPCR0 int PLLST goto (7, CPM_CPPCR0_PLLST_LSB)
+const CPM_CPPCR0_PLLST_BIT 0
+register CPPCR0 int PLLST goto (7, CPM_CPPCR0_PLLST_BIT)
 
 // 
 register CPPSR export "PLL switch and status register"
@@ -242,8 +242,8 @@ register OPCR int PD goto 3
 register OPCR int ERCS goto 2
 
 // 
-const CPM_OPCR_O1ST_LSB 8
-register OPCR int O1ST goto (15, CPM_OPCR_O1ST_LSB)
+const CPM_OPCR_O1ST_BIT 8
+register OPCR int O1ST goto (15, CPM_OPCR_O1ST_BIT)
 
 // 
 register CLKGR1 export "Clock gate register 1"
@@ -270,20 +270,20 @@ register CPPCR1 int PLL1OFF goto 1
 register CPPCR1 int PLL1ON goto 0
 
 // 
-const CPM_CPPCR1_PLL1M_LSB 24
-register CPPCR1 int PLL1M goto (30, CPM_CPPCR1_PLL1M_LSB)
+const CPM_CPPCR1_PLL1M_BIT 24
+register CPPCR1 int PLL1M goto (30, CPM_CPPCR1_PLL1M_BIT)
 
 // 
-const CPM_CPPCR1_PLL1N_LSB 18
-register CPPCR1 int PLL1N goto (21, CPM_CPPCR1_PLL1N_LSB)
+const CPM_CPPCR1_PLL1N_BIT 18
+register CPPCR1 int PLL1N goto (21, CPM_CPPCR1_PLL1N_BIT)
 
 // 
-const CPM_CPPCR1_PLL1OD_LSB 16
-register CPPCR1 int PLL1OD goto (17, CPM_CPPCR1_PLL1OD_LSB)
+const CPM_CPPCR1_PLL1OD_BIT 16
+register CPPCR1 int PLL1OD goto (17, CPM_CPPCR1_PLL1OD_BIT)
 
 // 
-const CPM_CPPCR1_P1SDIV_LSB 9
-register CPPCR1 int P1SDIV goto (14, CPM_CPPCR1_P1SDIV_LSB)
+const CPM_CPPCR1_P1SDIV_BIT 9
+register CPPCR1 int P1SDIV goto (14, CPM_CPPCR1_P1SDIV_BIT)
 
 // 
 register CPSPPR export "CPM scratch pad protected register"
@@ -304,32 +304,33 @@ register USBPCR int OTG_DISABLE goto 20
 register USBPCR int TXPREEMPHTUNE goto 6
 
 // 
-const CPM_USBPCR_IDPULLUP_LSB 28
-register USBPCR int IDPULLUP goto (29, CPM_USBPCR_IDPULLUP_LSB)
+const CPM_USBPCR_IDPULLUP_BIT 28
+register USBPCR int IDPULLUP export "IDPULLUP_MASK bit"
+register USBPCR int IDPULLUP goto (29, CPM_USBPCR_IDPULLUP_BIT)
 
 // 
-const CPM_USBPCR_COMPDISTUNE_LSB 17
-register USBPCR int COMPDISTUNE goto (19, CPM_USBPCR_COMPDISTUNE_LSB)
+const CPM_USBPCR_COMPDISTUNE_BIT 17
+register USBPCR int COMPDISTUNE goto (19, CPM_USBPCR_COMPDISTUNE_BIT)
 
 // 
-const CPM_USBPCR_OTGTUNE_LSB 14
-register USBPCR int OTGTUNE goto (16, CPM_USBPCR_OTGTUNE_LSB)
+const CPM_USBPCR_OTGTUNE_BIT 14
+register USBPCR int OTGTUNE goto (16, CPM_USBPCR_OTGTUNE_BIT)
 
 // 
-const CPM_USBPCR_SQRXTUNE_LSB 11
-register USBPCR int SQRXTUNE goto (13, CPM_USBPCR_SQRXTUNE_LSB)
+const CPM_USBPCR_SQRXTUNE_BIT 11
+register USBPCR int SQRXTUNE goto (13, CPM_USBPCR_SQRXTUNE_BIT)
 
 // 
-const CPM_USBPCR_TXFSLSTUNE_LSB 7
-register USBPCR int TXFSLSTUNE goto (10, CPM_USBPCR_TXFSLSTUNE_LSB)
+const CPM_USBPCR_TXFSLSTUNE_BIT 7
+register USBPCR int TXFSLSTUNE goto (10, CPM_USBPCR_TXFSLSTUNE_BIT)
 
 // 
-const CPM_USBPCR_TXRISETUNE_LSB 4
-register USBPCR int TXRISETUNE goto (5, CPM_USBPCR_TXRISETUNE_LSB)
+const CPM_USBPCR_TXRISETUNE_BIT 4
+register USBPCR int TXRISETUNE goto (5, CPM_USBPCR_TXRISETUNE_BIT)
 
 // 
-const CPM_USBPCR_TXVREFTUNE_LSB 0
-register USBPCR int TXVREFTUNE goto (3, CPM_USBPCR_TXVREFTUNE_LSB)
+const CPM_USBPCR_TXVREFTUNE_BIT 0
+register USBPCR int TXVREFTUNE goto (3, CPM_USBPCR_TXVREFTUNE_BIT)
 
 // 
 register USBRDT export "OTG reset detect timer register"
@@ -338,8 +339,8 @@ register USBRDT int IDDIG_EN goto 24
 register USBRDT int IDDIG_REG goto 23
 
 // 
-const CPM_USBRDT_USBRDT_LSB 0
-register USBRDT int USBRDT goto (22, CPM_USBRDT_USBRDT_LSB)
+const CPM_USBRDT_USBRDT_BIT 0
+register USBRDT int USBRDT goto (22, CPM_USBRDT_USBRDT_BIT)
 
 // 
 register USBCDR export "OTG PHY clock divider register"
@@ -347,8 +348,9 @@ register USBCDR int UCS goto 31
 register USBCDR int UPCS goto 30
 
 // 
-const CPM_USBCDR_OTGDIV_LSB 0
-register USBCDR int OTGDIV goto (5, CPM_USBCDR_OTGDIV_LSB)
+const CPM_USBCDR_OTGDIV_BIT 0
+register USBCDR int OTGDIV export "USBCDR bit"
+register USBCDR int OTGDIV goto (5, CPM_USBCDR_OTGDIV_BIT)
 
 // 
 register I2SCDR export "I2S device clock divider register"
@@ -356,8 +358,9 @@ register I2SCDR int I2CS goto 31
 register I2SCDR int I2PCS goto 30
 
 // 
-const CPM_I2SCDR_I2SDIV_LSB 0
-register I2SCDR int I2SDIV goto (8, CPM_I2SCDR_I2SDIV_LSB)
+const CPM_I2SCDR_I2SDIV_BIT 0
+register I2SCDR int I2SDIV export "I2SCDR bit"
+register I2SCDR int I2SDIV goto (8, CPM_I2SCDR_I2SDIV_BIT)
 
 // 
 register LPCDR export "LCD pix clock divider register"
@@ -365,45 +368,51 @@ register LPCDR int LTCS goto 30
 register LPCDR int LPCS goto 29
 
 // 
-const CPM_LPCDR_PIXDIV_LSB 0
-register LPCDR int PIXDIV goto (10, CPM_LPCDR_PIXDIV_LSB)
+const CPM_LPCDR_PIXDIV_BIT 0
+register LPCDR int PIXDIV export "LPCDR bit"
+register LPCDR int PIXDIV goto (10, CPM_LPCDR_PIXDIV_BIT)
 
 // 
 register MSCCDR export "MSC clock divider register"
 register MSCCDR int MCS goto 31
 
 // 
-const CPM_MSCCDR_MSCDIV_LSB 0
-register MSCCDR int MSCDIV goto (5, CPM_MSCCDR_MSCDIV_LSB)
+const CPM_MSCCDR_MSCDIV_BIT 0
+register MSCCDR int MSCDIV export "MSCCDR bit"
+register MSCCDR int MSCDIV goto (5, CPM_MSCCDR_MSCDIV_BIT)
 
 // 
 register UHCCDR export "UHC device clock divider register"
 register UHCCDR int UHPCS goto 31
 
 // 
-const CPM_UHCCDR_UHCDIV_LSB 0
-register UHCCDR int UHCDIV goto (3, CPM_UHCCDR_UHCDIV_LSB)
+const CPM_UHCCDR_UHCDIV_BIT 0
+register UHCCDR int UHCDIV export "UHCCDR bit"
+register UHCCDR int UHCDIV goto (3, CPM_UHCCDR_UHCDIV_BIT)
 
 // 
 register SSICDR export "SSI clock divider register"
 register SSICDR int SCS goto 31
 
 // 
-const CPM_SSICDR_SSIDIV_LSB 0
-register SSICDR int SSIDIV goto (5, CPM_SSICDR_SSIDIV_LSB)
+const CPM_SSICDR_SSIDIV_BIT 0
+register SSICDR int SSIDIV export "SSICDR bit"
+register SSICDR int SSIDIV goto (5, CPM_SSICDR_SSIDIV_BIT)
 
 // 
 register CIMCDR export "CIM mclk clock divider register"
-const CPM_CIMCDR_CIMDIV_LSB 0
-register CIMCDR int CIMDIV goto (7, CPM_CIMCDR_CIMDIV_LSB)
+const CPM_CIMCDR_CIMDIV_BIT 0
+register CIMCDR int CIMDIV export "CIMCDR bit"
+register CIMCDR int CIMDIV goto (7, CPM_CIMCDR_CIMDIV_BIT)
 
 // 
 register GPSCDR export "GPS clock divider register"
 register GPSCDR int GPCS goto 31
 
 // 
-const CPM_GPSCDR_GPSDIV_LSB 0
-// #define GSPCDR_GPSDIV_MASK      BITS_H2L(3, CPM_GPSCDR_GPSDIV_LSB)
+const CPM_GPSCDR_GPSDIV_BIT 0
+register GPSCDR int GPSDIV export "GPSCDR bit"
+register GPSCDR int GPSDIV goto (3, CPM_GPSCDR_GPSDIV_BIT)
 
 // 
 register PCMCDR export "PCM device clock divider register"
@@ -411,14 +420,16 @@ register PCMCDR int PCMS goto 31
 register PCMCDR int PCMPCS goto 30
 
 // 
-const CPM_PCMCDR_PCMDIV_LSB 0
-register PCMCDR int PCMDIV goto (8, CPM_PCMCDR_PCMDIV_LSB)
+const CPM_PCMCDR_PCMDIV_BIT 0
+register PCMCDR int PCMDIV export "PCMCDR bit"
+register PCMCDR int PCMDIV goto (8, CPM_PCMCDR_PCMDIV_BIT)
 
 // 
 /* GPU clock divider register */
 register GPUCDR int GPCS goto 31
-const CPM_GPUCDR_GPUDIV_LSB 0
-register GPUCDR int GPUDIV goto (2, CPM_GPUCDR_GPUDIV_LSB)
+const CPM_GPUCDR_GPUDIV_BIT 0
+register GPUCDR int GPUDIV export "GPUCDR bit"
+register GPUCDR int GPUDIV goto (2, CPM_GPUCDR_GPUDIV_BIT)
 
 // 
 
@@ -619,11 +630,11 @@ const __CGU_CLOCK_BASE__ 0x1000
 // #define __cpm_stop_lcd()	(REG_CPM_CLKGR0 |= CLKGR0_LCD)
 // #define __cpm_start_lcd()	(REG_CPM_CLKGR0 &= ~CLKGR0_LCD)
 // #define __cpm_set_pixdiv(v) \
-// 	(REG_CPM_LPCDR = (REG_CPM_LPCDR & ~LPCDR_PIXDIV_MASK) | ((v) << (LPCDR_PIXDIV_LSB)))
+// 	(REG_CPM_LPCDR = (REG_CPM_LPCDR & ~LPCDR_PIXDIV_MASK) | ((v) << (LPCDR_PIXDIV_BIT)))
 
 // 
 // #define __cpm_get_pixdiv() \
-// 	((REG_CPM_LPCDR & LPCDR_PIXDIV_MASK) >> LPCDR_PIXDIV_LSB)
+// 	((REG_CPM_LPCDR & LPCDR_PIXDIV_MASK) >> LPCDR_PIXDIV_BIT)
 
 // 
 // #define __cpm_select_pixclk_lcd()	(REG_CPM_LPCDR &= ~LPCDR_LTCS)
@@ -698,59 +709,59 @@ const __CGU_CLOCK_BASE__ 0x1000
 
 // 
 // #define __cpm_get_pllm() \
-// 	((REG_CPM_CPPCR0 & CPPCR0_PLLM_MASK) >> CPPCR0_PLLM_LSB)
+// 	((REG_CPM_CPPCR0 & CPPCR0_PLLM_MASK) >> CPPCR0_PLLM_BIT)
 // #define __cpm_get_plln() \
-// 	((REG_CPM_CPPCR0 & CPPCR0_PLLN_MASK) >> CPPCR0_PLLN_LSB)
+// 	((REG_CPM_CPPCR0 & CPPCR0_PLLN_MASK) >> CPPCR0_PLLN_BIT)
 // #define __cpm_get_pllod() \
-// 	((REG_CPM_CPPCR0 & CPPCR0_PLLOD_MASK) >> CPPCR0_PLLOD_LSB)
+// 	((REG_CPM_CPPCR0 & CPPCR0_PLLOD_MASK) >> CPPCR0_PLLOD_BIT)
 
 // 
 // #define __cpm_get_pll1m() \
-// 	((REG_CPM_CPPCR1 & CPPCR1_PLL1M_MASK) >> CPPCR1_PLL1M_LSB)
+// 	((REG_CPM_CPPCR1 & CPPCR1_PLL1M_MASK) >> CPPCR1_PLL1M_BIT)
 // #define __cpm_get_pll1n() \
-// 	((REG_CPM_CPPCR1 & CPPCR1_PLL1N_MASK) >> CPPCR1_PLL1N_LSB)
+// 	((REG_CPM_CPPCR1 & CPPCR1_PLL1N_MASK) >> CPPCR1_PLL1N_BIT)
 // #define __cpm_get_pll1od() \
-// 	((REG_CPM_CPPCR1 & CPPCR1_PLL1OD_MASK) >> CPPCR1_PLL1OD_LSB)
+// 	((REG_CPM_CPPCR1 & CPPCR1_PLL1OD_MASK) >> CPPCR1_PLL1OD_BIT)
 
 // 
 // #define __cpm_get_cdiv() \
-// 	((REG_CPM_CPCCR & CPCCR_CDIV_MASK) >> CPCCR_CDIV_LSB)
+// 	((REG_CPM_CPCCR & CPCCR_CDIV_MASK) >> CPCCR_CDIV_BIT)
 // #define __cpm_get_hdiv() \
-// 	((REG_CPM_CPCCR & CPCCR_HDIV_MASK) >> CPCCR_HDIV_LSB)
+// 	((REG_CPM_CPCCR & CPCCR_HDIV_MASK) >> CPCCR_HDIV_BIT)
 // #define __cpm_get_h2div() \
-// 	((REG_CPM_CPCCR & CPCCR_H2DIV_MASK) >> CPCCR_H2DIV_LSB)
+// 	((REG_CPM_CPCCR & CPCCR_H2DIV_MASK) >> CPCCR_H2DIV_BIT)
 // #define __cpm_get_otgdiv() \
-// 	((REG_CPM_USBCDR & USBCDR_OTGDIV_MASK) >> USBCDR_OTGDIV_LSB)
+// 	((REG_CPM_USBCDR & USBCDR_OTGDIV_MASK) >> USBCDR_OTGDIV_BIT)
 // #define __cpm_get_pdiv() \
-// 	((REG_CPM_CPCCR & CPCCR_PDIV_MASK) >> CPCCR_PDIV_LSB)
+// 	((REG_CPM_CPCCR & CPCCR_PDIV_MASK) >> CPCCR_PDIV_BIT)
 // #define __cpm_get_mdiv() \
-// 	((REG_CPM_CPCCR & CPCCR_MDIV_MASK) >> CPCCR_MDIV_LSB)
+// 	((REG_CPM_CPCCR & CPCCR_MDIV_MASK) >> CPCCR_MDIV_BIT)
 // #define __cpm_get_sdiv() \
-// 	((REG_CPM_CPCCR & CPCCR_SDIV_MASK) >> CPCCR_SDIV_LSB)
+// 	((REG_CPM_CPCCR & CPCCR_SDIV_MASK) >> CPCCR_SDIV_BIT)
 // #define __cpm_get_i2sdiv() \
-// 	((REG_CPM_I2SCDR & I2SCDR_I2SDIV_MASK) >> I2SCDR_I2SDIV_LSB)
+// 	((REG_CPM_I2SCDR & I2SCDR_I2SDIV_MASK) >> I2SCDR_I2SDIV_BIT)
 // #define __cpm_get_pixdiv() \
-// 	((REG_CPM_LPCDR & LPCDR_PIXDIV_MASK) >> LPCDR_PIXDIV_LSB)
+// 	((REG_CPM_LPCDR & LPCDR_PIXDIV_MASK) >> LPCDR_PIXDIV_BIT)
 // #define __cpm_get_mscdiv() \
-// 	((REG_CPM_MSCCDR & MSCCDR_MSCDIV_MASK) >> MSCCDR_MSCDIV_LSB)
+// 	((REG_CPM_MSCCDR & MSCCDR_MSCDIV_MASK) >> MSCCDR_MSCDIV_BIT)
 
 // 
 /*
 #define __cpm_get_mscdiv(n) \
-	((REG_CPM_MSCCDR(n) & MSCCDR_MSCDIV_MASK) >> MSCCDR_MSCDIV_LSB)
+	((REG_CPM_MSCCDR(n) & MSCCDR_MSCDIV_MASK) >> MSCCDR_MSCDIV_BIT)
 */
 // #define __cpm_get_ssidiv() \
-// 	((REG_CPM_SSICDR & SSICDR_SSIDIV_MASK) >> SSICDR_SSIDIV_LSB)
+// 	((REG_CPM_SSICDR & SSICDR_SSIDIV_MASK) >> SSICDR_SSIDIV_BIT)
 // #define __cpm_get_pcmdiv() \
-// 	((REG_CPM_PCMCDR & PCMCDR_PCMCD_MASK) >> PCMCDR_PCMCD_LSB)
+// 	((REG_CPM_PCMCDR & PCMCDR_PCMCD_MASK) >> PCMCDR_PCMCD_BIT)
 // #define __cpm_get_pll1div() \
-// 	((REG_CPM_CPPCR1 & CPCCR1_P1SDIV_MASK) >> CPCCR1_P1SDIV_LSB)
+// 	((REG_CPM_CPPCR1 & CPCCR1_P1SDIV_MASK) >> CPCCR1_P1SDIV_BIT)
 
 // 
 
 // 
 // #define __cpm_set_ssidiv(v) \
-// 	(REG_CPM_SSICDR = (REG_CPM_SSICDR & ~SSICDR_SSIDIV_MASK) | ((v) << (SSICDR_SSIDIV_LSB)))
+// 	(REG_CPM_SSICDR = (REG_CPM_SSICDR & ~SSICDR_SSIDIV_MASK) | ((v) << (SSICDR_SSIDIV_BIT)))
 
 // 
 // #define __cpm_exclk_direct()		(REG_CPM_CPCCR &= ~CPM_CPCCR_ECS)

@@ -70,7 +70,8 @@
 #define BDMAC_DCS_FRBS(n)	((n) << 24)
 #define BDMAC_DCS_CDOA_BIT	16        /* copy of DMA offset address */
   #define BDMAC_DCS_CDOA_MASK	(0xff << BDMAC_DCS_CDOA_BIT)
-#define BDMAC_DCS_BERR	(0x1f << 7)  /* BCH error within this transfer, Only for channel 0 */
+#define BDMAC_DCS_BERR_BIT	7  /* BCH error within this transfer, Only for channel 0 */
+#define BDMAC_DCS_BERR_MASK	(0x1f << BDMAC_DCS_BERR_BIT)
 #define BDMAC_DCS_BUERR       (1 << 6)  /* BCH uncorrectable error, only for channel 0 */
 #define BDMAC_DCS_NSERR       (1 << 5)  /* status error, only for channel 1 */
 #define BDMAC_DCS_AR		(1 << 4)  /* address error */

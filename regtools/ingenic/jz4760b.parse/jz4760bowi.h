@@ -62,9 +62,9 @@ register OWICFG int ENA goto 0
 
 // 
 register OWICTL export "OWI control register"
-// #define OWICTL_EBYTE	BIT2
-// #define OWICTL_EBIT	BIT1
-// #define OWICTL_ERST	BIT0
+register OWICTL int EBYTE goto 2
+register OWICTL int EBIT goto 1
+register OWICTL int ERST goto 0
 
 // 
 register OWISTS export "OWI status register"

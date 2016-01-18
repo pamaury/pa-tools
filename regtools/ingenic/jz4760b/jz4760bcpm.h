@@ -98,23 +98,23 @@
 #define CPM_CPCCR_CE                BIT22
 #define CPM_CPCCR_PCS               BIT21
 
-#define CPM_CPCCR_SDIV_LSB          24
-#define CPM_CPCCR_SDIV_MASK         BITS_H2L(27, CPM_CPCCR_SDIV_LSB)
+#define CPM_CPCCR_SDIV_BIT          24
+#define CPM_CPCCR_SDIV_MASK         BITS_H2L(27, CPM_CPCCR_SDIV_BIT)
 
-#define CPM_CPCCR_H2DIV_LSB         16
-#define CPM_CPCCR_H2DIV_MASK        BITS_H2L(19, CPM_CPCCR_H2DIV_LSB)
+#define CPM_CPCCR_H2DIV_BIT         16
+#define CPM_CPCCR_H2DIV_MASK        BITS_H2L(19, CPM_CPCCR_H2DIV_BIT)
 
-#define CPM_CPCCR_MDIV_LSB          12
-#define CPM_CPCCR_MDIV_MASK         BITS_H2L(15, CPM_CPCCR_MDIV_LSB)
+#define CPM_CPCCR_MDIV_BIT          12
+#define CPM_CPCCR_MDIV_MASK         BITS_H2L(15, CPM_CPCCR_MDIV_BIT)
 
-#define CPM_CPCCR_PDIV_LSB		8
-#define CPM_CPCCR_PDIV_MASK         BITS_H2L(11, CPM_CPCCR_PDIV_LSB)
+#define CPM_CPCCR_PDIV_BIT		8
+#define CPM_CPCCR_PDIV_MASK         BITS_H2L(11, CPM_CPCCR_PDIV_BIT)
 
-#define CPM_CPCCR_HDIV_LSB		4
-#define CPM_CPCCR_HDIV_MASK         BITS_H2L(7, CPM_CPCCR_HDIV_LSB)
+#define CPM_CPCCR_HDIV_BIT		4
+#define CPM_CPCCR_HDIV_MASK         BITS_H2L(7, CPM_CPCCR_HDIV_BIT)
 
-#define CPM_CPCCR_CDIV_LSB		0
-#define CPM_CPCCR_CDIV_MASK         BITS_H2L(3, CPM_CPCCR_CDIV_LSB)
+#define CPM_CPCCR_CDIV_BIT		0
+#define CPM_CPCCR_CDIV_MASK         BITS_H2L(3, CPM_CPCCR_CDIV_BIT)
 
 /* Low power control register(LCR) */
 #define CPM_LCR_PDAHB1              BIT30
@@ -124,16 +124,16 @@
 #define CPM_LCR_PDGPSS              BIT24
 #define CPM_LCR_DOZE                BIT2
 
-#define CPM_LCR_PST_LSB             8
-#define CPM_LCR_PST_MASK            BITS_H2L(19, CPM_LCR_PST_LSB)
+#define CPM_LCR_PST_BIT             8
+#define CPM_LCR_PST_MASK            BITS_H2L(19, CPM_LCR_PST_BIT)
 
-#define CPM_LCR_DUTY_LSB            3
-#define CPM_LCR_DUTY_MASK           BITS_H2L(7, CPM_LCR_DUTY_LSB)
+#define CPM_LCR_DUTY_BIT            3
+#define CPM_LCR_DUTY_MASK           BITS_H2L(7, CPM_LCR_DUTY_BIT)
 
-#define CPM_LCR_LPM_LSB             0
-#define CPM_LCR_LPM_MASK            BITS_H2L(1, CPM_LCR_LPM_LSB)
-#define CPM_LCR_LPM_IDLE            (0x0 << CPM_LCR_LPM_LSB)
-#define CPM_LCR_LPM_SLEEP           (0x1 << CPM_LCR_LPM_LSB)
+#define CPM_LCR_LPM_BIT             0
+#define CPM_LCR_LPM_MASK            BITS_H2L(1, CPM_LCR_LPM_BIT)
+#define CPM_LCR_LPM_IDLE            (0x0 << CPM_LCR_LPM_BIT)
+#define CPM_LCR_LPM_SLEEP           (0x1 << CPM_LCR_LPM_BIT)
 
 /* Reset status register(RSR) */
 #define CPM_RSR_P0R         BIT2
@@ -147,17 +147,17 @@
 #define CPM_CPPCR0_PLLBP            BIT9
 #define CPM_CPPCR0_PLLEN            BIT8
 
-#define CPM_CPPCR0_PLLM_LSB         24
-#define CPM_CPPCR0_PLLM_MASK        BITS_H2L(30, CPM_CPPCR0_PLLM_LSB)
+#define CPM_CPPCR0_PLLM_BIT         24
+#define CPM_CPPCR0_PLLM_MASK        BITS_H2L(30, CPM_CPPCR0_PLLM_BIT)
 
-#define CPM_CPPCR0_PLLN_LSB         18
-#define CPM_CPPCR0_PLLN_MASK        BITS_H2L(21, CPM_CPPCR0_PLLN_LSB)
+#define CPM_CPPCR0_PLLN_BIT         18
+#define CPM_CPPCR0_PLLN_MASK        BITS_H2L(21, CPM_CPPCR0_PLLN_BIT)
 
-#define CPM_CPPCR0_PLLOD_LSB        16
-#define CPM_CPPCR0_PLLOD_MASK       BITS_H2L(17, CPM_CPPCR0_PLLOD_LSB)
+#define CPM_CPPCR0_PLLOD_BIT        16
+#define CPM_CPPCR0_PLLOD_MASK       BITS_H2L(17, CPM_CPPCR0_PLLOD_BIT)
 
-#define CPM_CPPCR0_PLLST_LSB        0
-#define CPM_CPPCR0_PLLST_MASK       BITS_H2L(7, CPM_CPPCR0_PLLST_LSB)
+#define CPM_CPPCR0_PLLST_BIT        0
+#define CPM_CPPCR0_PLLST_MASK       BITS_H2L(7, CPM_CPPCR0_PLLST_BIT)
 
 /* PLL switch and status register(CPPSR) */
 #define CPM_CPPSR_PLLOFF            BIT31
@@ -212,8 +212,8 @@
 #define CPM_OPCR_PD                 BIT3
 #define CPM_OPCR_ERCS               BIT2
 
-#define CPM_OPCR_O1ST_LSB           8
-#define CPM_OPCR_O1ST_MASK          BITS_H2L(15, CPM_OPCR_O1ST_LSB)
+#define CPM_OPCR_O1ST_BIT           8
+#define CPM_OPCR_O1ST_MASK          BITS_H2L(15, CPM_OPCR_O1ST_BIT)
 
 /* Clock gate register 1(CLKGR1) */
 #define CPM_CLKGR1_AUX              BIT11
@@ -237,17 +237,17 @@
 #define CPM_CPPCR1_PLL1OFF          BIT1
 #define CPM_CPPCR1_PLL1ON           BIT0
 
-#define CPM_CPPCR1_PLL1M_LSB        24
-#define CPM_CPPCR1_PLL1M_MASK       BITS_H2L(30, CPM_CPPCR1_PLL1M_LSB)
+#define CPM_CPPCR1_PLL1M_BIT        24
+#define CPM_CPPCR1_PLL1M_MASK       BITS_H2L(30, CPM_CPPCR1_PLL1M_BIT)
 
-#define CPM_CPPCR1_PLL1N_LSB        18
-#define CPM_CPPCR1_PLL1N_MASK       BITS_H2L(21, CPM_CPPCR1_PLL1N_LSB)
+#define CPM_CPPCR1_PLL1N_BIT        18
+#define CPM_CPPCR1_PLL1N_MASK       BITS_H2L(21, CPM_CPPCR1_PLL1N_BIT)
 
-#define CPM_CPPCR1_PLL1OD_LSB       16
-#define CPM_CPPCR1_PLL1OD_MASK      BITS_H2L(17, CPM_CPPCR1_PLL1OD_LSB)
+#define CPM_CPPCR1_PLL1OD_BIT       16
+#define CPM_CPPCR1_PLL1OD_MASK      BITS_H2L(17, CPM_CPPCR1_PLL1OD_BIT)
 
-#define CPM_CPPCR1_P1SDIV_LSB       9
-#define CPM_CPPCR1_P1SDIV_MASK      BITS_H2L(14, CPM_CPPCR1_P1SDIV_LSB)
+#define CPM_CPPCR1_P1SDIV_BIT       9
+#define CPM_CPPCR1_P1SDIV_MASK      BITS_H2L(14, CPM_CPPCR1_P1SDIV_BIT)
 
 /* CPM scratch pad protected register(CPSPPR) */
 #define CPM_CPSPPR_CPSPR_WRITABLE   (0x00005a5a)
@@ -265,95 +265,95 @@
 #define CPM_USBPCR_OTG_DISABLE      BIT20
 #define CPM_USBPCR_TXPREEMPHTUNE    BIT6
 
-#define CPM_USBPCR_IDPULLUP_LSB             28   /* IDPULLUP_MASK bit */
-#define CPM_USBPCR_IDPULLUP_MASK            BITS_H2L(29, CPM_USBPCR_IDPULLUP_LSB)
+#define CPM_USBPCR_IDPULLUP_BIT             28   /* IDPULLUP_MASK bit */
+#define CPM_USBPCR_IDPULLUP_MASK            BITS_H2L(29, CPM_USBPCR_IDPULLUP_BIT)
 
-#define CPM_USBPCR_COMPDISTUNE_LSB          17
-#define CPM_USBPCR_COMPDISTUNE_MASK         BITS_H2L(19, CPM_USBPCR_COMPDISTUNE_LSB)
+#define CPM_USBPCR_COMPDISTUNE_BIT          17
+#define CPM_USBPCR_COMPDISTUNE_MASK         BITS_H2L(19, CPM_USBPCR_COMPDISTUNE_BIT)
 
-#define CPM_USBPCR_OTGTUNE_LSB              14
-#define CPM_USBPCR_OTGTUNE_MASK             BITS_H2L(16, CPM_USBPCR_OTGTUNE_LSB)
+#define CPM_USBPCR_OTGTUNE_BIT              14
+#define CPM_USBPCR_OTGTUNE_MASK             BITS_H2L(16, CPM_USBPCR_OTGTUNE_BIT)
 
-#define CPM_USBPCR_SQRXTUNE_LSB             11
-#define CPM_USBPCR_SQRXTUNE_MASK            BITS_H2L(13, CPM_USBPCR_SQRXTUNE_LSB)
+#define CPM_USBPCR_SQRXTUNE_BIT             11
+#define CPM_USBPCR_SQRXTUNE_MASK            BITS_H2L(13, CPM_USBPCR_SQRXTUNE_BIT)
 
-#define CPM_USBPCR_TXFSLSTUNE_LSB           7
-#define CPM_USBPCR_TXFSLSTUNE_MASK          BITS_H2L(10, CPM_USBPCR_TXFSLSTUNE_LSB)
+#define CPM_USBPCR_TXFSLSTUNE_BIT           7
+#define CPM_USBPCR_TXFSLSTUNE_MASK          BITS_H2L(10, CPM_USBPCR_TXFSLSTUNE_BIT)
 
-#define CPM_USBPCR_TXRISETUNE_LSB           4
-#define CPM_USBPCR_TXRISETUNE_MASK          BITS_H2L(5, CPM_USBPCR_TXRISETUNE_LSB)
+#define CPM_USBPCR_TXRISETUNE_BIT           4
+#define CPM_USBPCR_TXRISETUNE_MASK          BITS_H2L(5, CPM_USBPCR_TXRISETUNE_BIT)
 
-#define CPM_USBPCR_TXVREFTUNE_LSB           0
-#define CPM_USBPCR_TXVREFTUNE_MASK          BITS_H2L(3, CPM_USBPCR_TXVREFTUNE_LSB)
+#define CPM_USBPCR_TXVREFTUNE_BIT           0
+#define CPM_USBPCR_TXVREFTUNE_MASK          BITS_H2L(3, CPM_USBPCR_TXVREFTUNE_BIT)
 
 /* OTG reset detect timer register(USBRDT) */
 #define CPM_USBRDT_VBFIL_LD_EN      BIT25
 #define CPM_USBRDT_IDDIG_EN         BIT24
 #define CPM_USBRDT_IDDIG_REG        BIT23
 
-#define CPM_USBRDT_USBRDT_LSB       0
-#define CPM_USBRDT_USBRDT_MASK      BITS_H2L(22, CPM_USBRDT_USBRDT_LSB)
+#define CPM_USBRDT_USBRDT_BIT       0
+#define CPM_USBRDT_USBRDT_MASK      BITS_H2L(22, CPM_USBRDT_USBRDT_BIT)
 
 /* OTG PHY clock divider register(USBCDR) */
 #define CPM_USBCDR_UCS              BIT31
 #define CPM_USBCDR_UPCS             BIT30
 
-#define CPM_USBCDR_OTGDIV_LSB       0       /* USBCDR bit */
-#define CPM_USBCDR_OTGDIV_MASK      BITS_H2L(5, CPM_USBCDR_OTGDIV_LSB)
+#define CPM_USBCDR_OTGDIV_BIT       0       /* USBCDR bit */
+#define CPM_USBCDR_OTGDIV_MASK      BITS_H2L(5, CPM_USBCDR_OTGDIV_BIT)
 
 /* I2S device clock divider register(I2SCDR) */
 #define CPM_I2SCDR_I2CS             BIT31
 #define CPM_I2SCDR_I2PCS            BIT30
 
-#define CPM_I2SCDR_I2SDIV_LSB       0       /* I2SCDR bit */
-#define CPM_I2SCDR_I2SDIV_MASK      BITS_H2L(8, CPM_I2SCDR_I2SDIV_LSB)
+#define CPM_I2SCDR_I2SDIV_BIT       0       /* I2SCDR bit */
+#define CPM_I2SCDR_I2SDIV_MASK      BITS_H2L(8, CPM_I2SCDR_I2SDIV_BIT)
 
 /* LCD pix clock divider register(LPCDR) */
 #define CPM_LPCDR_LTCS              BIT30
 #define CPM_LPCDR_LPCS              BIT29
 
-#define CPM_LPCDR_PIXDIV_LSB        0       /* LPCDR bit */
-#define CPM_LPCDR_PIXDIV_MASK       BITS_H2L(10, CPM_LPCDR_PIXDIV_LSB)
+#define CPM_LPCDR_PIXDIV_BIT        0       /* LPCDR bit */
+#define CPM_LPCDR_PIXDIV_MASK       BITS_H2L(10, CPM_LPCDR_PIXDIV_BIT)
 
 /* MSC clock divider register(MSCCDR) */
 #define CPM_MSCCDR_MCS              BIT31
 
-#define CPM_MSCCDR_MSCDIV_LSB       0       /* MSCCDR bit */
-#define CPM_MSCCDR_MSCDIV_MASK      BITS_H2L(5, CPM_MSCCDR_MSCDIV_LSB)
+#define CPM_MSCCDR_MSCDIV_BIT       0       /* MSCCDR bit */
+#define CPM_MSCCDR_MSCDIV_MASK      BITS_H2L(5, CPM_MSCCDR_MSCDIV_BIT)
 
 /* UHC device clock divider register(UHCCDR) */
 #define CPM_UHCCDR_UHPCS            BIT31
 
-#define CPM_UHCCDR_UHCDIV_LSB       0       /* UHCCDR bit */
-#define CPM_UHCCDR_UHCDIV_MASK      BITS_H2L(3, CPM_UHCCDR_UHCDIV_LSB)
+#define CPM_UHCCDR_UHCDIV_BIT       0       /* UHCCDR bit */
+#define CPM_UHCCDR_UHCDIV_MASK      BITS_H2L(3, CPM_UHCCDR_UHCDIV_BIT)
 
 /* SSI clock divider register(SSICDR) */
 #define CPM_SSICDR_SCS              BIT31
 
-#define CPM_SSICDR_SSIDIV_LSB       0       /* SSICDR bit */
-#define CPM_SSICDR_SSIDIV_MASK      BITS_H2L(5, CPM_SSICDR_SSIDIV_LSB)
+#define CPM_SSICDR_SSIDIV_BIT       0       /* SSICDR bit */
+#define CPM_SSICDR_SSIDIV_MASK      BITS_H2L(5, CPM_SSICDR_SSIDIV_BIT)
 
 /* CIM mclk clock divider register(CIMCDR) */
-#define CPM_CIMCDR_CIMDIV_LSB       0       /* CIMCDR bit */
-#define CPM_CIMCDR_CIMDIV_MASK      BITS_H2L(7, CPM_CIMCDR_CIMDIV_LSB)
+#define CPM_CIMCDR_CIMDIV_BIT       0       /* CIMCDR bit */
+#define CPM_CIMCDR_CIMDIV_MASK      BITS_H2L(7, CPM_CIMCDR_CIMDIV_BIT)
 
 /* GPS clock divider register(GPSCDR) */
 #define CPM_GPSCDR_GPCS             BIT31
 
-#define CPM_GPSCDR_GPSDIV_LSB       0       /* GPSCDR bit */
-#define GSPCDR_GPSDIV_MASK      BITS_H2L(3, CPM_GPSCDR_GPSDIV_LSB)
+#define CPM_GPSCDR_GPSDIV_BIT       0       /* GPSCDR bit */
+#define CPM_GPSCDR_GPSDIV_MASK      BITS_H2L(3, CPM_GPSCDR_GPSDIV_BIT)
 
 /* PCM device clock divider register(PCMCDR) */
 #define CPM_PCMCDR_PCMS             BIT31
 #define CPM_PCMCDR_PCMPCS           BIT30
 
-#define CPM_PCMCDR_PCMDIV_LSB       0       /* PCMCDR bit */
-#define CPM_PCMCDR_PCMDIV_MASK      BITS_H2L(8, CPM_PCMCDR_PCMDIV_LSB)
+#define CPM_PCMCDR_PCMDIV_BIT       0       /* PCMCDR bit */
+#define CPM_PCMCDR_PCMDIV_MASK      BITS_H2L(8, CPM_PCMCDR_PCMDIV_BIT)
 
 /* GPU clock divider register */
 #define CPM_GPUCDR_GPCS             BIT31
-#define CPM_GPUCDR_GPUDIV_LSB       0       /* GPUCDR bit */
-#define CPM_GPUCDR_GPUDIV_MASK      BITS_H2L(2, CPM_GPUCDR_GPUDIV_LSB)
+#define CPM_GPUCDR_GPUDIV_BIT       0       /* GPUCDR bit */
+#define CPM_GPUCDR_GPUDIV_MASK      BITS_H2L(2, CPM_GPUCDR_GPUDIV_BIT)
 
 
 #ifndef __MIPS_ASSEMBLER
@@ -530,10 +530,10 @@ void cpm_uhc_phy(unsigned int en);
 #define __cpm_stop_lcd()	(REG_CPM_CLKGR0 |= CLKGR0_LCD)
 #define __cpm_start_lcd()	(REG_CPM_CLKGR0 &= ~CLKGR0_LCD)
 #define __cpm_set_pixdiv(v) \
-	(REG_CPM_LPCDR = (REG_CPM_LPCDR & ~LPCDR_PIXDIV_MASK) | ((v) << (LPCDR_PIXDIV_LSB)))
+	(REG_CPM_LPCDR = (REG_CPM_LPCDR & ~LPCDR_PIXDIV_MASK) | ((v) << (LPCDR_PIXDIV_BIT)))
 
 #define __cpm_get_pixdiv() \
-	((REG_CPM_LPCDR & LPCDR_PIXDIV_MASK) >> LPCDR_PIXDIV_LSB)
+	((REG_CPM_LPCDR & LPCDR_PIXDIV_MASK) >> LPCDR_PIXDIV_BIT)
 
 #define __cpm_select_pixclk_lcd()	(REG_CPM_LPCDR &= ~LPCDR_LTCS)
 #define __cpm_select_pixclk_tve()	(REG_CPM_LPCDR |= LPCDR_LTCS)
@@ -596,54 +596,54 @@ extern jz_clocks_t jz_clocks;
 #define __cpm_select_rtcclk_rtc()	(REG_CPM_OPCR |= OPCR_ERCS)
 
 #define __cpm_get_pllm() \
-	((REG_CPM_CPPCR0 & CPPCR0_PLLM_MASK) >> CPPCR0_PLLM_LSB)
+	((REG_CPM_CPPCR0 & CPPCR0_PLLM_MASK) >> CPPCR0_PLLM_BIT)
 #define __cpm_get_plln() \
-	((REG_CPM_CPPCR0 & CPPCR0_PLLN_MASK) >> CPPCR0_PLLN_LSB)
+	((REG_CPM_CPPCR0 & CPPCR0_PLLN_MASK) >> CPPCR0_PLLN_BIT)
 #define __cpm_get_pllod() \
-	((REG_CPM_CPPCR0 & CPPCR0_PLLOD_MASK) >> CPPCR0_PLLOD_LSB)
+	((REG_CPM_CPPCR0 & CPPCR0_PLLOD_MASK) >> CPPCR0_PLLOD_BIT)
 
 #define __cpm_get_pll1m() \
-	((REG_CPM_CPPCR1 & CPPCR1_PLL1M_MASK) >> CPPCR1_PLL1M_LSB)
+	((REG_CPM_CPPCR1 & CPPCR1_PLL1M_MASK) >> CPPCR1_PLL1M_BIT)
 #define __cpm_get_pll1n() \
-	((REG_CPM_CPPCR1 & CPPCR1_PLL1N_MASK) >> CPPCR1_PLL1N_LSB)
+	((REG_CPM_CPPCR1 & CPPCR1_PLL1N_MASK) >> CPPCR1_PLL1N_BIT)
 #define __cpm_get_pll1od() \
-	((REG_CPM_CPPCR1 & CPPCR1_PLL1OD_MASK) >> CPPCR1_PLL1OD_LSB)
+	((REG_CPM_CPPCR1 & CPPCR1_PLL1OD_MASK) >> CPPCR1_PLL1OD_BIT)
 
 #define __cpm_get_cdiv() \
-	((REG_CPM_CPCCR & CPCCR_CDIV_MASK) >> CPCCR_CDIV_LSB)
+	((REG_CPM_CPCCR & CPCCR_CDIV_MASK) >> CPCCR_CDIV_BIT)
 #define __cpm_get_hdiv() \
-	((REG_CPM_CPCCR & CPCCR_HDIV_MASK) >> CPCCR_HDIV_LSB)
+	((REG_CPM_CPCCR & CPCCR_HDIV_MASK) >> CPCCR_HDIV_BIT)
 #define __cpm_get_h2div() \
-	((REG_CPM_CPCCR & CPCCR_H2DIV_MASK) >> CPCCR_H2DIV_LSB)
+	((REG_CPM_CPCCR & CPCCR_H2DIV_MASK) >> CPCCR_H2DIV_BIT)
 #define __cpm_get_otgdiv() \
-	((REG_CPM_USBCDR & USBCDR_OTGDIV_MASK) >> USBCDR_OTGDIV_LSB)
+	((REG_CPM_USBCDR & USBCDR_OTGDIV_MASK) >> USBCDR_OTGDIV_BIT)
 #define __cpm_get_pdiv() \
-	((REG_CPM_CPCCR & CPCCR_PDIV_MASK) >> CPCCR_PDIV_LSB)
+	((REG_CPM_CPCCR & CPCCR_PDIV_MASK) >> CPCCR_PDIV_BIT)
 #define __cpm_get_mdiv() \
-	((REG_CPM_CPCCR & CPCCR_MDIV_MASK) >> CPCCR_MDIV_LSB)
+	((REG_CPM_CPCCR & CPCCR_MDIV_MASK) >> CPCCR_MDIV_BIT)
 #define __cpm_get_sdiv() \
-	((REG_CPM_CPCCR & CPCCR_SDIV_MASK) >> CPCCR_SDIV_LSB)
+	((REG_CPM_CPCCR & CPCCR_SDIV_MASK) >> CPCCR_SDIV_BIT)
 #define __cpm_get_i2sdiv() \
-	((REG_CPM_I2SCDR & I2SCDR_I2SDIV_MASK) >> I2SCDR_I2SDIV_LSB)
+	((REG_CPM_I2SCDR & I2SCDR_I2SDIV_MASK) >> I2SCDR_I2SDIV_BIT)
 #define __cpm_get_pixdiv() \
-	((REG_CPM_LPCDR & LPCDR_PIXDIV_MASK) >> LPCDR_PIXDIV_LSB)
+	((REG_CPM_LPCDR & LPCDR_PIXDIV_MASK) >> LPCDR_PIXDIV_BIT)
 #define __cpm_get_mscdiv() \
-	((REG_CPM_MSCCDR & MSCCDR_MSCDIV_MASK) >> MSCCDR_MSCDIV_LSB)
+	((REG_CPM_MSCCDR & MSCCDR_MSCDIV_MASK) >> MSCCDR_MSCDIV_BIT)
 
 /*
 #define __cpm_get_mscdiv(n) \
-	((REG_CPM_MSCCDR(n) & MSCCDR_MSCDIV_MASK) >> MSCCDR_MSCDIV_LSB)
+	((REG_CPM_MSCCDR(n) & MSCCDR_MSCDIV_MASK) >> MSCCDR_MSCDIV_BIT)
 */
 #define __cpm_get_ssidiv() \
-	((REG_CPM_SSICDR & SSICDR_SSIDIV_MASK) >> SSICDR_SSIDIV_LSB)
+	((REG_CPM_SSICDR & SSICDR_SSIDIV_MASK) >> SSICDR_SSIDIV_BIT)
 #define __cpm_get_pcmdiv() \
-	((REG_CPM_PCMCDR & PCMCDR_PCMCD_MASK) >> PCMCDR_PCMCD_LSB)
+	((REG_CPM_PCMCDR & PCMCDR_PCMCD_MASK) >> PCMCDR_PCMCD_BIT)
 #define __cpm_get_pll1div() \
-	((REG_CPM_CPPCR1 & CPCCR1_P1SDIV_MASK) >> CPCCR1_P1SDIV_LSB)
+	((REG_CPM_CPPCR1 & CPCCR1_P1SDIV_MASK) >> CPCCR1_P1SDIV_BIT)
 
 
 #define __cpm_set_ssidiv(v) \
-	(REG_CPM_SSICDR = (REG_CPM_SSICDR & ~SSICDR_SSIDIV_MASK) | ((v) << (SSICDR_SSIDIV_LSB)))
+	(REG_CPM_SSICDR = (REG_CPM_SSICDR & ~SSICDR_SSIDIV_MASK) | ((v) << (SSICDR_SSIDIV_BIT)))
 
 #define __cpm_exclk_direct()		(REG_CPM_CPCCR &= ~CPM_CPCCR_ECS)
 #define __cpm_exclk_div2()          (REG_CPM_CPCCR |= CPM_CPCCR_ECS)

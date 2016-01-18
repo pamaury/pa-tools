@@ -117,10 +117,12 @@
 #define USB_CNTL_MODE_1		(1 << 2)
 #define USB_CNTL_INTR_EN	(1 << 3)
 #define USB_CNTL_EP(n)		((n) << 4)
-#define USB_CNTL_BURST_0	(0 << 9)
-#define USB_CNTL_BURST_4	(1 << 9)
-#define USB_CNTL_BURST_8	(2 << 9)
-#define USB_CNTL_BURST_16	(3 << 9)
+#define USB_CNTL_BURST_BIT	9
+#define USB_CNTL_BURST_MASK	(3 << USB_CNTL_BURST_BIT)
+#define USB_CNTL_BURST_0	(0 << USB_CNTL_BURST_BIT)
+#define USB_CNTL_BURST_4	(1 << USB_CNTL_BURST_BIT)
+#define USB_CNTL_BURST_8	(2 << USB_CNTL_BURST_BIT)
+#define USB_CNTL_BURST_16	(3 << USB_CNTL_BURST_BIT)
 
 
 

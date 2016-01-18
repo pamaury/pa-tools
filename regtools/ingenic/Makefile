@@ -2,7 +2,7 @@ DEFINES=
 CC?=gcc
 CXX?=g++
 LD?=g++
-REGTOOLS_DIR=/home/pamaury/project/rockbox/myrockbox/utils/regtools/
+REGTOOLS_DIR=$(PAMAURY_PROJECT_HOME)/rockbox/myrockbox/utils/regtools/
 INCLUDE=-I$(REGTOOLS_DIR)/include
 CFLAGS=-g -std=c99 -Wall $(DEFINES) $(INCLUDE)
 CXXFLAGS=-g -Wall $(DEFINES) $(INCLUDE) -std=gnu++11

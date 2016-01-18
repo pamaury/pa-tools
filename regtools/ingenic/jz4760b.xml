@@ -1029,6 +1029,12 @@
                     <width>8</width>
                 </field>
                 <field>
+                    <name>BERR</name>
+                    <desc>BCH error within this transfer, Only for channel 0</desc>
+                    <position>7</position>
+                    <width>5</width>
+                </field>
+                <field>
                     <name>BUERR</name>
                     <desc>BCH uncorrectable error, only for channel 0</desc>
                     <position>6</position>
@@ -1629,6 +1635,7 @@
         </node>
         <node>
             <name>CTRL</name>
+            <title>CIM Control Register</title>
             <instance>
                 <name>CTRL</name>
                 <address>0x4</address>
@@ -1773,6 +1780,7 @@
         </node>
         <node>
             <name>STATE</name>
+            <title>CIM State Register</title>
             <instance>
                 <name>STATE</name>
                 <address>0x8</address>
@@ -1898,6 +1906,7 @@
         </node>
         <node>
             <name>CMD</name>
+            <title>CIM DMA Command Register</title>
             <instance>
                 <name>CMD</name>
                 <address>0x2c</address>
@@ -1937,6 +1946,7 @@
         </node>
         <node>
             <name>SIZE</name>
+            <title>CIM Window-Image Size Register</title>
             <instance>
                 <name>SIZE</name>
                 <address>0x30</address>
@@ -1958,6 +1968,7 @@
         </node>
         <node>
             <name>OFFSET</name>
+            <title>CIM Image Offset Register</title>
             <instance>
                 <name>OFFSET</name>
                 <address>0x34</address>
@@ -2168,6 +2179,14 @@
                     <name>LPM</name>
                     <position>0</position>
                     <width>2</width>
+                    <enum>
+                        <name>IDLE</name>
+                        <value>0x0</value>
+                    </enum>
+                    <enum>
+                        <name>SLEEP</name>
+                        <value>0x1</value>
+                    </enum>
                 </field>
             </register>
         </node>
@@ -2654,6 +2673,7 @@
                 </field>
                 <field>
                     <name>IDPULLUP</name>
+                    <desc>IDPULLUP_MASK bit</desc>
                     <position>28</position>
                     <width>2</width>
                 </field>
@@ -2742,6 +2762,7 @@
                 </field>
                 <field>
                     <name>OTGDIV</name>
+                    <desc>USBCDR bit</desc>
                     <position>0</position>
                     <width>6</width>
                 </field>
@@ -2765,6 +2786,7 @@
                 </field>
                 <field>
                     <name>I2SDIV</name>
+                    <desc>I2SCDR bit</desc>
                     <position>0</position>
                     <width>9</width>
                 </field>
@@ -2788,6 +2810,7 @@
                 </field>
                 <field>
                     <name>PIXDIV</name>
+                    <desc>LPCDR bit</desc>
                     <position>0</position>
                     <width>11</width>
                 </field>
@@ -2807,6 +2830,7 @@
                 </field>
                 <field>
                     <name>MSCDIV</name>
+                    <desc>MSCCDR bit</desc>
                     <position>0</position>
                     <width>6</width>
                 </field>
@@ -2826,6 +2850,7 @@
                 </field>
                 <field>
                     <name>UHCDIV</name>
+                    <desc>UHCCDR bit</desc>
                     <position>0</position>
                     <width>4</width>
                 </field>
@@ -2845,6 +2870,7 @@
                 </field>
                 <field>
                     <name>SSIDIV</name>
+                    <desc>SSICDR bit</desc>
                     <position>0</position>
                     <width>6</width>
                 </field>
@@ -2860,6 +2886,7 @@
             <register>
                 <field>
                     <name>CIMDIV</name>
+                    <desc>CIMCDR bit</desc>
                     <position>0</position>
                     <width>8</width>
                 </field>
@@ -2876,6 +2903,12 @@
                 <field>
                     <name>GPCS</name>
                     <position>31</position>
+                </field>
+                <field>
+                    <name>GPSDIV</name>
+                    <desc>GPSCDR bit</desc>
+                    <position>0</position>
+                    <width>4</width>
                 </field>
             </register>
         </node>
@@ -2897,6 +2930,7 @@
                 </field>
                 <field>
                     <name>PCMDIV</name>
+                    <desc>PCMCDR bit</desc>
                     <position>0</position>
                     <width>9</width>
                 </field>
@@ -2915,6 +2949,7 @@
                 </field>
                 <field>
                     <name>GPUDIV</name>
+                    <desc>GPUCDR bit</desc>
                     <position>0</position>
                     <width>3</width>
                 </field>
@@ -4812,6 +4847,10 @@
             </instance>
             <register>
                 <field>
+                    <name>BW</name>
+                    <position>31</position>
+                </field>
+                <field>
                     <name>CA</name>
                     <position>26</position>
                     <width>3</width>
@@ -4864,6 +4903,10 @@
                         <name>13</name>
                         <value>0x2</value>
                     </enum>
+                </field>
+                <field>
+                    <name>BA</name>
+                    <position>19</position>
                 </field>
                 <field>
                     <name>PDM</name>
@@ -4990,7 +5033,7 @@
         </node>
         <node>
             <name>DMAR</name>
-            <title>SDRAM Bank Addr Config Register</title>
+            <title>SDRAM Bank Address Configuration Register</title>
             <instance>
                 <name>DMAR</name>
                 <range>
@@ -5580,9 +5623,18 @@
                     <position>3</position>
                 </field>
                 <field>
-                    <name>SPDS</name>
+                    <name>SPD</name>
                     <desc>standard mode 100kbps</desc>
                     <position>1</position>
+                    <width>2</width>
+                    <enum>
+                        <name>SPDF</name>
+                        <value>0x2</value>
+                    </enum>
+                    <enum>
+                        <name>SPDS</name>
+                        <value>0x1</value>
+                    </enum>
                 </field>
                 <field>
                     <name>MD</name>
@@ -10427,8 +10479,25 @@
                     <position>3</position>
                 </field>
                 <field>
-                    <name>BURST_4</name>
+                    <name>BURST</name>
                     <position>9</position>
+                    <width>2</width>
+                    <enum>
+                        <name>0</name>
+                        <value>0x0</value>
+                    </enum>
+                    <enum>
+                        <name>4</name>
+                        <value>0x1</value>
+                    </enum>
+                    <enum>
+                        <name>8</name>
+                        <value>0x2</value>
+                    </enum>
+                    <enum>
+                        <name>16</name>
+                        <value>0x3</value>
+                    </enum>
                 </field>
             </register>
         </node>
@@ -10694,6 +10763,18 @@
             </instance>
             <register>
                 <width>8</width>
+                <field>
+                    <name>EBYTE</name>
+                    <position>2</position>
+                </field>
+                <field>
+                    <name>EBIT</name>
+                    <position>1</position>
+                </field>
+                <field>
+                    <name>ERST</name>
+                    <position>0</position>
+                </field>
             </register>
         </node>
         <node>
@@ -12229,6 +12310,11 @@
                     <name>OSTEN</name>
                     <position>15</position>
                 </field>
+                <field>
+                    <name>TCEN</name>
+                    <position>0</position>
+                    <width>8</width>
+                </field>
             </register>
         </node>
         <node>
@@ -12243,6 +12329,11 @@
                 <field>
                     <name>OST</name>
                     <position>15</position>
+                </field>
+                <field>
+                    <name>TIMER</name>
+                    <position>0</position>
+                    <width>8</width>
                 </field>
             </register>
         </node>

@@ -132,10 +132,12 @@ register CNTL int DIR_IN goto 1
 register CNTL int MODE_1 goto 2
 register CNTL int INTR_EN goto 3
 // #define USB_CNTL_EP(n)		((n) << 4)
-// #define USB_CNTL_BURST_0	(0 << 9)
-register CNTL int BURST_4 goto 9
-// #define USB_CNTL_BURST_8	(2 << 9)
-// #define USB_CNTL_BURST_16	(3 << 9)
+const USB_CNTL_BURST_BIT 9
+register CNTL int BURST goto (3 << USB_CNTL_BURST_BIT)
+register CNTL int BURST enum "0" 0
+register CNTL int BURST enum "4" 1
+register CNTL int BURST enum "8" 2
+register CNTL int BURST enum "16" 3
 
 // 
 
