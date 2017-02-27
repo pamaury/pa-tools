@@ -27,7 +27,7 @@
 #define USB_TESTMODE	(USB_BASE + 0x0f) /* USB test mode 8-bit */
 
 #define USB_CSR0		(USB_BASE + 0x12) /* EP0 CSR 8-bit */
-#define USB_INMAXP		(USB_BASE + (1 << 4)) /* EP1-2 IN Max Pkt Size 16-bit */
+#define USB_INMAXP		(USB_BASE + 0x10) /* EP1-2 IN Max Pkt Size 16-bit */
 #define USB_INCSR		(USB_BASE + 0x12) /* EP1-2 IN CSR LSB 8/16bit */
 #define USB_INCSRH		(USB_BASE + 0x13) /* EP1-2 IN CSR MSB 8-bit */
 #define USB_OUTMAXP		(USB_BASE + 0x14) /* EP1 OUT Max Pkt Size 16-bit */

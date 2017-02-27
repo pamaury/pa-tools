@@ -35,7 +35,7 @@ register TESTMODE goto 0x0f export "USB test mode 8-bit"
 
 // 
 register CSR0 goto 0x12 export "EP0 CSR 8-bit"
-register INMAXP goto (1 << 4) export "EP1-2 IN Max Pkt Size 16-bit"
+register INMAXP goto 0x10 export "EP1-2 IN Max Pkt Size 16-bit"
 register INCSR goto 0x12 export "EP1-2 IN CSR LSB 8/16bit"
 register INCSRH goto 0x13 export "EP1-2 IN CSR MSB 8-bit"
 register OUTMAXP goto 0x14 export "EP1 OUT Max Pkt Size 16-bit"

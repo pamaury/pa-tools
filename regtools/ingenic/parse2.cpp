@@ -894,7 +894,7 @@ bool parse(const char *filename)
                     next_tok();
                     break;
                 }
-                
+
                 bool paren = false;
                 if(cur_tok().type == T_LPAREN)
                 {

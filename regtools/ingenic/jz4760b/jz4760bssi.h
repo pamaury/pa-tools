@@ -18,21 +18,21 @@
 
 
 /* n (0-2) */
-#define	SSI_DR(n)		(SSI0_BASE + 0x000 + (n)*0x1000)
-#define	SSI_CR0(n)		(SSI0_BASE + 0x004 + (n)*0x1000)
-#define	SSI_CR1(n)		(SSI0_BASE + 0x008 + (n)*0x1000)
-#define	SSI_SR(n)		(SSI0_BASE + 0x00C + (n)*0x1000)
-#define	SSI_ITR(n)		(SSI0_BASE + 0x010 + (n)*0x1000)
-#define	SSI_ICR(n)		(SSI0_BASE + 0x014 + (n)*0x1000)
-#define	SSI_GR(n)		(SSI0_BASE + 0x018 + (n)*0x1000)
+#define	SSI_DR		(SSI_BASE + 0x000 )
+#define	SSI_CR0		(SSI_BASE + 0x004 )
+#define	SSI_CR1		(SSI_BASE + 0x008 )
+#define	SSI_SR		(SSI_BASE + 0x00C )
+#define	SSI_ITR		(SSI_BASE + 0x010 )
+#define	SSI_ICR		(SSI_BASE + 0x014 )
+#define	SSI_GR		(SSI_BASE + 0x018 )
 
-#define	REG_SSI_DR(n)		REG32(SSI_DR(n))
-#define	REG_SSI_CR0(n)		REG16(SSI_CR0(n))
-#define	REG_SSI_CR1(n)		REG32(SSI_CR1(n))
-#define	REG_SSI_SR(n)		REG32(SSI_SR(n))
-#define	REG_SSI_ITR(n)		REG16(SSI_ITR(n))
-#define	REG_SSI_ICR(n)		REG8(SSI_ICR(n))
-#define	REG_SSI_GR(n)		REG16(SSI_GR(n))
+#define	REG_SSI_DR		REG32(SSI_DR)
+#define	REG_SSI_CR0		REG16(SSI_CR0)
+#define	REG_SSI_CR1		REG32(SSI_CR1)
+#define	REG_SSI_SR		REG32(SSI_SR)
+#define	REG_SSI_ITR		REG16(SSI_ITR)
+#define	REG_SSI_ICR		REG8(SSI_ICR)
+#define	REG_SSI_GR		REG16(SSI_GR)
 
 /* SSI Data Register (DR) */
 

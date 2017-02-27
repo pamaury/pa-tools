@@ -21,3 +21,7 @@ all: $(EXEC)
 
 clean:
 	rm -fr $(EXEC)
+
+run:
+	./jz_preprocess -o jz4760b.parse/ jz4760b/*.h
+	./parse2 -o regs-jz4760b.xml jz4760b.parse/*.h

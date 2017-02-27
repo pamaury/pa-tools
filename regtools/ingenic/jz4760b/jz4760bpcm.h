@@ -31,12 +31,12 @@
 /*
  * PCM registers address definition
  */
-#define PCM_PCTL(n)	(PCM_BASE + 0x3000 * (n) + PCM_PCTL_OFFSET)
-#define PCM_PCFG(n)	(PCM_BASE + 0x3000 * (n) + PCM_PCFG_OFFSET)
-#define PCM_PDP(n)	(PCM_BASE + 0x3000 * (n) + PCM_PDP_OFFSET)
-#define PCM_PINTC(n)	(PCM_BASE + 0x3000 * (n) + PCM_PINTC_OFFSET)
-#define PCM_PINTS(n)	(PCM_BASE + 0x3000 * (n) + PCM_PINTS_OFFSET)
-#define PCM_PDIV(n)	(PCM_BASE + 0x3000 * (n) + PCM_PDIV_OFFSET)
+#define PCM_PCTL	(PCM_BASE  + PCM_PCTL_OFFSET)
+#define PCM_PCFG	(PCM_BASE  + PCM_PCFG_OFFSET)
+#define PCM_PDP	(PCM_BASE  + PCM_PDP_OFFSET)
+#define PCM_PINTC	(PCM_BASE  + PCM_PINTC_OFFSET)
+#define PCM_PINTS	(PCM_BASE  + PCM_PINTS_OFFSET)
+#define PCM_PDIV	(PCM_BASE  + PCM_PDIV_OFFSET)
 
 
 /*

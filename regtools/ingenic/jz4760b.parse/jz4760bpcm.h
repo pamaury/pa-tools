@@ -42,12 +42,12 @@ const PCM_PDIV_OFFSET 0x14
 /*
  * PCM registers address definition
  */
-register PCTL goto<n> "0x3000 * (n) + PCM_PCTL_OFFSET" export ""
-register PCFG goto<n> "0x3000 * (n) + PCM_PCFG_OFFSET" export ""
-register PDP goto<n> "0x3000 * (n) + PCM_PDP_OFFSET" export ""
-register PINTC goto<n> "0x3000 * (n) + PCM_PINTC_OFFSET" export ""
-register PINTS goto<n> "0x3000 * (n) + PCM_PINTS_OFFSET" export ""
-register PDIV goto<n> "0x3000 * (n) + PCM_PDIV_OFFSET" export ""
+register PCTL goto PCM_PCTL_OFFSET export ""
+register PCFG goto PCM_PCFG_OFFSET export ""
+register PDP goto PCM_PDP_OFFSET export ""
+register PINTC goto PCM_PINTC_OFFSET export ""
+register PINTS goto PCM_PINTS_OFFSET export ""
+register PDIV goto PCM_PDIV_OFFSET export ""
 
 // 
 

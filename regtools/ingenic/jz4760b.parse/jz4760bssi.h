@@ -28,13 +28,13 @@ this class SSI goto (2, 0xB0045000)
 
 // 
 for n 0 2
-register DR goto<n> "0x000 + (n)*0x1000" export ""
-register CR0 goto<n> "0x004 + (n)*0x1000" export ""
-register CR1 goto<n> "0x008 + (n)*0x1000" export ""
-register SR goto<n> "0x00C + (n)*0x1000" export ""
-register ITR goto<n> "0x010 + (n)*0x1000" export ""
-register ICR goto<n> "0x014 + (n)*0x1000" export ""
-register GR goto<n> "0x018 + (n)*0x1000" export ""
+register DR goto 0x000  export ""
+register CR0 goto 0x004  export ""
+register CR1 goto 0x008  export ""
+register SR goto 0x00C  export ""
+register ITR goto 0x010  export ""
+register ICR goto 0x014  export ""
+register GR goto 0x018  export ""
 
 // 
 register DR sizeof 32
