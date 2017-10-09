@@ -1,11 +1,9 @@
-#include <QApplication>
 #include <QDir>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QVariant>
 #include <QSqlIndex>
 #include <QSqlRecord>
-#include <QDir>
 #include <QFile>
 
 void usage()
@@ -35,7 +33,6 @@ void dump_table(QSqlDatabase& db, const QString& table)
 
 int main(int argc, char *argv[])
 {
-    QApplication app(argc, argv);
     if(argc <= 1)
         usage();
     QString dbfilename(argv[1]);
@@ -56,10 +53,10 @@ int main(int argc, char *argv[])
         return 1;
     }
     printf("DB opened\n");
-    printf("Tables:\n");
-    QStringList list = db.tables();
-    //for(int i = 0; i < list.size(); i++)
-    //    dump_table(db, list[i]);
+//     printf("Tables:\n");
+//     QStringList list = db.tables();
+//     for(int i = 0; i < list.size(); i++)
+//        dump_table(db, list[i]);
 
     QSqlQuery query("SELECT * FROM FileTable", db);
     int i_keyword = query.record().indexOf("keyword");
